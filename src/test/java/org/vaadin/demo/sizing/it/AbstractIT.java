@@ -2,7 +2,10 @@ package org.vaadin.demo.sizing.it;
 
 import com.vaadin.testbench.BrowserTestBase;
 import org.junit.jupiter.api.BeforeEach;
+import org.openqa.selenium.StaleElementReferenceException;
 import org.openqa.selenium.TimeoutException;
+
+import java.util.function.BooleanSupplier;
 
 /**
  * Base class for all our tests, allowing us to change the applicable driver,
@@ -43,8 +46,9 @@ public abstract class AbstractIT extends BrowserTestBase {
      * the page are defined, so their internal elements (e.g. the input of a
      * text field) exist before the test interacts with them.
      * <p>
-     * {@code vaadin-grid-cell-content} is excluded, as it is a plain container
-     * element that is never registered as a custom element.
+     * {@code vaadin-grid-cell-content} and {@code vaadin-metrics-collector}
+     * (hidden helper element of the Observability Kit) are excluded, as they
+     * are plain elements that are never registered as custom elements.
      */
     private void waitForWebComponentsUpgraded() {
         try {
@@ -60,7 +64,29 @@ public abstract class AbstractIT extends BrowserTestBase {
     /** Collects the distinct tag names of all Vaadin components on the page into {@code tags}. */
     private static final String VAADIN_COMPONENT_TAGS_SCRIPT =
             "const tags = [...new Set([...document.querySelectorAll('*')].map(e => e.localName))]"
-                    + ".filter(tag => tag.startsWith('vaadin-') && tag !== 'vaadin-grid-cell-content');";
+                    + ".filter(tag => tag.startsWith('vaadin-')"
+                    + " && !['vaadin-grid-cell-content', 'vaadin-metrics-collector'].includes(tag));";
+
+    /**
+     * Waits until the condition is true. Elements may be re-rendered while the
+     * server response is applied, so a stale element just means "try again".
+     *
+     * @param condition the condition to check, looking up its elements on every call
+     * @param message   the failure message if the condition never becomes true
+     */
+    protected void waitUntilTrue(BooleanSupplier condition, String message) {
+        try {
+            waitUntil(driver -> {
+                try {
+                    return condition.getAsBoolean();
+                } catch (StaleElementReferenceException e) {
+                    return false;
+                }
+            });
+        } catch (TimeoutException e) {
+            throw new AssertionError(message, e);
+        }
+    }
 
     abstract public String getViewName();
 }

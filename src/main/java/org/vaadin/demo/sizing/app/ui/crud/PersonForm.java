@@ -1,10 +1,10 @@
 package org.vaadin.demo.sizing.app.ui.crud;
 
 import com.vaadin.flow.component.ClickEvent;
-import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.checkbox.Checkbox;
+import com.vaadin.flow.component.confirmdialog.ConfirmDialog;
 import com.vaadin.flow.component.datepicker.DatePicker;
 import com.vaadin.flow.component.formlayout.FormLayout;
 import com.vaadin.flow.component.html.Div;
@@ -14,6 +14,7 @@ import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.data.binder.BeanValidationBinder;
 import com.vaadin.flow.data.binder.ValidationException;
+import com.vaadin.flow.function.SerializableConsumer;
 import com.vaadin.flow.function.SerializableRunnable;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.vaadin.demo.sizing.app.data.SamplePerson;
@@ -32,15 +33,21 @@ class PersonForm extends Div {
 
     private final Button cancel = new Button("Cancel");
     private final Button save = new Button("Save");
+    private final Button delete = new Button("Delete");
 
     private final SamplePersonService samplePersonService;
-    private final SerializableRunnable refreshGridRunnable;
+    private final SerializableConsumer<SamplePerson> onSaved;
+    private final SerializableRunnable onDeleted;
+    private final SerializableRunnable onCancel;
     private final BeanValidationBinder<SamplePerson> binder;
     private SamplePerson samplePerson;
 
-    PersonForm(SamplePersonService samplePersonService, SerializableRunnable refreshGridRunnable) {
+    PersonForm(SamplePersonService samplePersonService, SerializableConsumer<SamplePerson> onSaved,
+               SerializableRunnable onDeleted, SerializableRunnable onCancel) {
         this.samplePersonService = samplePersonService;
-        this.refreshGridRunnable = refreshGridRunnable;
+        this.onSaved = onSaved;
+        this.onDeleted = onDeleted;
+        this.onCancel = onCancel;
         setClassName("editor-layout");
 
         add(createFormLayout());
@@ -54,11 +61,31 @@ class PersonForm extends Div {
 
         save.addClickListener(this::clickSaveButton);
         cancel.addClickListener(this::clickCancelButton);
+        delete.addClickListener(this::clickDeleteButton);
+        delete.setEnabled(false);
     }
 
     private void clickCancelButton(ClickEvent<Button> buttonClickEvent) {
         clearForm();
-        refreshGridRunnable.run();
+        onCancel.run();
+    }
+
+    private void clickDeleteButton(ClickEvent<Button> buttonClickEvent) {
+        SamplePerson personToDelete = this.samplePerson;
+        ConfirmDialog dialog = new ConfirmDialog();
+        dialog.setHeader("Delete person");
+        dialog.setText(String.format("Do you really want to delete %s %s?",
+                personToDelete.getFirstName(), personToDelete.getLastName()));
+        dialog.setCancelable(true);
+        dialog.setConfirmText("Delete");
+        dialog.setConfirmButtonTheme("danger primary");
+        dialog.addConfirmListener(event -> {
+            samplePersonService.delete(personToDelete.getId());
+            clearForm();
+            onDeleted.run();
+            Notification.show("Person deleted");
+        });
+        dialog.open();
     }
 
     private void clickSaveButton(ClickEvent<Button> buttonClickEvent) {
@@ -67,11 +94,10 @@ class PersonForm extends Div {
                 this.samplePerson = new SamplePerson();
             }
             binder.writeBean(this.samplePerson);
-            this.samplePersonService.save(this.samplePerson);
-            clearForm();
-            refreshGridRunnable.run();
+            // Keep the saved person (with its new id and version) in the form
+            populateForm(this.samplePersonService.save(this.samplePerson));
+            onSaved.accept(this.samplePerson);
             Notification.show("Data updated");
-            UI.getCurrent().navigate(CrudExampleView.class);
         } catch (ObjectOptimisticLockingFailureException exception) {
             Notification n = Notification.show(
                     "Error updating the data. Somebody else has updated the record while you were making changes.");
@@ -104,10 +130,13 @@ class PersonForm extends Div {
         cancel.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
         save.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
 
+        delete.addThemeVariants(ButtonVariant.AURA_DANGER);
+
         save.setId("save-button");
         cancel.setId("cancel-button");
+        delete.setId("delete-button");
 
-        buttonLayout.add(save, cancel);
+        buttonLayout.add(save, cancel, delete);
         return buttonLayout;
     }
 
@@ -118,6 +147,7 @@ class PersonForm extends Div {
     void populateForm(SamplePerson value) {
         this.samplePerson = value;
         binder.readBean(this.samplePerson);
+        delete.setEnabled(value != null && value.getId() != null);
     }
 
 }

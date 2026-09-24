@@ -2,6 +2,7 @@ package org.vaadin.demo.sizing.it.crud;
 
 import com.vaadin.flow.component.button.testbench.ButtonElement;
 import com.vaadin.flow.component.checkbox.testbench.CheckboxElement;
+import com.vaadin.flow.component.confirmdialog.testbench.ConfirmDialogElement;
 import com.vaadin.flow.component.datepicker.testbench.DatePickerElement;
 import com.vaadin.flow.component.grid.testbench.GridElement;
 import com.vaadin.flow.component.notification.testbench.NotificationElement;
@@ -11,11 +12,16 @@ import org.junit.jupiter.api.Assertions;
 import org.vaadin.demo.sizing.it.AbstractIT;
 
 import java.time.LocalDate;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class CrudExampleViewIT extends AbstractIT {
+
+    private static final Pattern EDIT_URL = Pattern.compile("/crud-example/(\\d+)/edit$");
 
     @Override
     public String getViewName() {
@@ -60,11 +66,14 @@ public class CrudExampleViewIT extends AbstractIT {
 
         ButtonElement saveButton = $(ButtonElement.class).withCaption("Save").single();
         ButtonElement cancelButton = $(ButtonElement.class).withCaption("Cancel").single();
+        ButtonElement deleteButton = $(ButtonElement.class).withCaption("Delete").single();
 
         assertNotNull(saveButton, "Save button should be present");
         assertNotNull(cancelButton, "Cancel button should be present");
+        assertNotNull(deleteButton, "Delete button should be present");
         assertTrue(saveButton.isDisplayed(), "Save button should be visible");
         assertTrue(cancelButton.isDisplayed(), "Cancel button should be visible");
+        assertTrue(deleteButton.isDisplayed(), "Delete button should be visible");
     }
 
     @BrowserTest
@@ -80,6 +89,60 @@ public class CrudExampleViewIT extends AbstractIT {
 
         // Check for success notification
         assertNotificationShown("Data updated");
+
+        // The saved person stays in the form and can be deleted
+        waitForEditUrl();
+        Assertions.assertEquals("Max", $(TextFieldElement.class).withCaption("First Name").single().getValue(),
+                "Saved person should stay in the form");
+        Assertions.assertEquals("Senior Developer", $(TextFieldElement.class).withCaption("Role").single().getValue(),
+                "Saved person should stay in the form");
+        assertTrue(deleteButton().isEnabled(), "Delete button should be enabled for a saved person");
+
+        // Clean up
+        deleteCurrentPerson();
+    }
+
+    @BrowserTest
+    public void testDeleteDisabledWithoutSelection() {
+        assertFalse(deleteButton().isEnabled(), "Delete button should be disabled when no person is selected");
+    }
+
+    @BrowserTest
+    public void testDeleteCancelKeepsPerson() {
+        GridElement grid = $(GridElement.class).waitForSingle();
+        grid.getRow(0).select();
+
+        TextFieldElement firstName = $(TextFieldElement.class).withCaption("First Name").waitForSingle();
+        waitUntil(driver -> !firstName.getValue().isEmpty());
+        String selectedName = firstName.getValue();
+
+        deleteButton().click();
+        ConfirmDialogElement dialog = $(ConfirmDialogElement.class).waitForFirst();
+        dialog.getCancelButton().click();
+
+        waitUntil(driver -> $(ConfirmDialogElement.class).all().isEmpty());
+        Assertions.assertEquals(selectedName, firstName.getValue(), "Person should stay in the form after cancelling delete");
+        assertTrue(grid.getRow(0).isSelected(), "Row should stay selected after cancelling delete");
+    }
+
+    @BrowserTest
+    public void testCreateAndDeletePerson() {
+        fillPersonForm("Erika", "Musterfrau", "erika.musterfrau@example.com",
+                "+49987654321", LocalDate.of(1985, 1, 20),
+                "Tester", "QA", false);
+        $(ButtonElement.class).withCaption("Save").single().click();
+        assertNotificationShown("Data updated");
+        long id = waitForEditUrl();
+
+        deleteCurrentPerson();
+
+        waitUntilTrue(() -> $(TextFieldElement.class).withCaption("First Name").single().getValue().isEmpty(),
+                "Form should be cleared after delete");
+        waitUntilTrue(() -> !deleteButton().isEnabled(), "Delete button should be disabled after delete");
+
+        // The deleted person can no longer be opened
+        navigateTo("crud-example/" + id + "/edit");
+        assertNotificationShown("The requested samplePerson was not found, ID = " + id);
     }
 
     @BrowserTest
@@ -170,6 +233,17 @@ public class CrudExampleViewIT extends AbstractIT {
 
             // Verify success notification
             assertNotificationShown("Data updated");
+
+            // The edited person stays selected and in the form
+            assertTrue(grid.getRow(0).isSelected(), "Edited row should stay selected");
+            Assertions.assertEquals(originalName + " Modified", firstName.getValue(), "Form should show the changed value");
+            waitUntil(driver -> (originalName + " Modified").equals(grid.getCell(0, 0).getText()));
+
+            // Revert the change (saving again also checks that the form holds the new version)
+            firstName.setValue(originalName);
+            saveButton.click();
+            waitUntil(driver -> originalName.equals(grid.getCell(0, 0).getText()));
+            assertTrue(grid.getRow(0).isSelected(), "Edited row should stay selected");
         }
     }
 
@@ -210,12 +284,37 @@ public class CrudExampleViewIT extends AbstractIT {
         $(CheckboxElement.class).withCaption("Important").single().setChecked(important);
     }
 
+    private ButtonElement deleteButton() {
+        return $(ButtonElement.class).withCaption("Delete").waitForSingle();
+    }
+
+    /**
+     * Deletes the person shown in the form and confirms the dialog.
+     */
+    private void deleteCurrentPerson() {
+        deleteButton().click();
+        ConfirmDialogElement dialog = $(ConfirmDialogElement.class).waitForFirst();
+        assertTrue(dialog.getMessageText().startsWith("Do you really want to delete"),
+                "Confirm dialog should ask before deleting");
+        dialog.getConfirmButton().click();
+        assertNotificationShown("Person deleted");
+    }
+
+    /**
+     * Waits until the URL points to the edit route and returns the id of the person.
+     */
+    private long waitForEditUrl() {
+        waitUntil(driver -> EDIT_URL.matcher(driver.getCurrentUrl()).find());
+        Matcher matcher = EDIT_URL.matcher(getDriver().getCurrentUrl());
+        assertTrue(matcher.find());
+        return Long.parseLong(matcher.group(1));
+    }
+
     private void assertNotificationShown(String expectedText) {
         try {
-            NotificationElement notification = $(NotificationElement.class).waitForSingle();
-            assertNotNull(notification, "Notification should be shown");
-            assertTrue(notification.getText().contains(expectedText),
-                    "Notification should contain expected text: " + expectedText);
+            // Several notifications may be open at the same time, so look for any matching one
+            waitUntil(driver -> $(NotificationElement.class).all().stream()
+                    .anyMatch(n -> n.getText().contains(expectedText)));
         } catch (Exception e) {
             Assertions.fail("Expected notification with text '" + expectedText + "' was not shown");
         }

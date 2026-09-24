@@ -40,7 +40,8 @@ class PersonGrid extends Div {
         grid.setItems(
                 query -> samplePersonService.list(
                                 PageRequest.of(query.getPage(), query.getPageSize(), VaadinSpringDataHelpers.toSpringDataSort(query)))
-                        .stream());
+                        .stream(),
+                query -> samplePersonService.count());
 
         // when a row is selected or deselected, populate form
         grid.asSingleSelect().addValueChangeListener(event -> {
@@ -57,5 +58,15 @@ class PersonGrid extends Div {
     void refreshGrid() {
         grid.select(null);
         grid.getDataProvider().refreshAll();
+    }
+
+    /**
+     * Reloads the grid and keeps the given person selected. Selecting a person
+     * that was not selected before (e.g. a newly created one) navigates to its
+     * edit route via the selection listener.
+     */
+    void refreshAndSelect(SamplePerson person) {
+        grid.getDataProvider().refreshAll();
+        grid.select(person);
     }
 }

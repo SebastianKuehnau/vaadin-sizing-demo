@@ -30,7 +30,7 @@ public class CrudExampleView extends VerticalLayout implements BeforeEnterObserv
 
         samplePersonService = crudExampleFactory.createService();
         grid = crudExampleFactory.createGrid(this::clearForm);
-        form = crudExampleFactory.createForm(this::refreshGrid);
+        form = crudExampleFactory.createForm(grid::refreshAndSelect, this::refreshGrid, this::refreshGrid);
 
         // Create UI
         SplitLayout splitLayout = new SplitLayout();

@@ -1,34 +1,33 @@
 package org.vaadin.demo.sizing.load;
 
 import com.vaadin.flow.component.button.testbench.ButtonElement;
-import com.vaadin.flow.component.grid.testbench.GridColumnElement;
-import com.vaadin.flow.component.grid.testbench.GridElement;
+import com.vaadin.flow.component.checkbox.testbench.CheckboxElement;
+import com.vaadin.flow.component.confirmdialog.testbench.ConfirmDialogElement;
+import com.vaadin.flow.component.datepicker.testbench.DatePickerElement;
 import com.vaadin.flow.component.notification.testbench.NotificationElement;
 import com.vaadin.flow.component.textfield.testbench.TextFieldElement;
 import com.vaadin.testbench.BrowserTest;
 import org.junit.jupiter.api.Assertions;
+import org.openqa.selenium.WebElement;
 import org.vaadin.demo.sizing.it.AbstractIT;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Random;
 import java.util.function.Function;
 
 /**
  * End-to-end scenario: the user greets themselves in the Hello World view,
- * then edits a random property of a random person in the CRUD view and
- * reverts the change again.
+ * then creates a new person in the CRUD view, changes a random property of it
+ * and deletes it again.
+ * <p>
+ * The scenario only works on the person it created itself and does not click
+ * on grid rows, so it can be replayed by many virtual users in parallel.
  */
 public class UserNotificationAndEditScenario extends AbstractIT {
 
     /**
-     * Notification.show() uses a duration of 5 seconds, so after 8 seconds
-     * the notification must be gone.
-     */
-    private static final long NOTIFICATION_GONE_AFTER_MILLIS = 8_000;
-
-    /**
-     * A property of the person that is editable in the form and shown as
-     * plain text in the grid.
+     * A property of the person that is editable in the form as a text field.
      */
     private record EditableProperty(String caption, Function<String, String> newValue) {
     }
@@ -50,78 +49,90 @@ public class UserNotificationAndEditScenario extends AbstractIT {
     }
 
     @BrowserTest
-    public void greetUserThenEditAndRevertRandomPerson() throws InterruptedException {
+    public void greetUserThenCreateEditAndDeletePerson() {
         System.out.println(getClass().getSimpleName() + " random seed: " + seed);
 
         greetUserAndCheckNotification();
 
         navigateTo("crud-example");
-        editAndRevertRandomPerson();
+        createPerson();
+        editRandomProperty();
+        deletePerson();
     }
 
-    private void greetUserAndCheckNotification() throws InterruptedException {
+    private void greetUserAndCheckNotification() {
         String name = "User" + randomDigits(6);
 
         $(TextFieldElement.class).withCaption("Your name").waitForSingle().setValue(name);
-        $(ButtonElement.class).withCaption("Say hello").single().click();
-
-        NotificationElement notification = $(NotificationElement.class).waitForSingle();
-        Assertions.assertTrue(notification.isOpen(), "Notification should be open");
-        Assertions.assertEquals("Hello " + name, notification.getText());
-
-        Thread.sleep(NOTIFICATION_GONE_AFTER_MILLIS);
-
-        Assertions.assertTrue(
-                $(NotificationElement.class).all().stream().noneMatch(NotificationElement::isOpen),
-                "Notification should have disappeared after " + NOTIFICATION_GONE_AFTER_MILLIS + " ms");
+        clickAndExpectNotification($(ButtonElement.class).withCaption("Say hello").single(), "Hello " + name);
     }
 
-    private void editAndRevertRandomPerson() {
-        GridElement grid = $(GridElement.class).waitForSingle();
-        waitUntil(driver -> grid.getRowCount() > 0);
+    private void createPerson() {
+        String suffix = randomDigits(8);
+        String firstName = "Load" + suffix;
+        System.out.println("Creating person " + firstName);
 
-        int lastVisibleRow = Math.min(grid.getLastVisibleRowIndex(), grid.getRowCount() - 1);
-        int row = grid.getFirstVisibleRowIndex()
-                + random.nextInt(lastVisibleRow - grid.getFirstVisibleRowIndex() + 1);
+        field("First Name").setValue(firstName);
+        field("Last Name").setValue("Test" + suffix);
+        field("Email").setValue("load." + suffix + "@example.com");
+        field("Phone").setValue("+49 " + suffix);
+        $(DatePickerElement.class).withCaption("Date Of Birth").single()
+                .setDate(LocalDate.of(1950 + random.nextInt(50), 1 + random.nextInt(12), 1 + random.nextInt(28)));
+        field("Occupation").setValue("Occupation " + suffix);
+        field("Role").setValue("Role " + suffix);
+        $(CheckboxElement.class).withCaption("Important").single().setChecked(random.nextBoolean());
+
+        clickAndExpectNotification(button("Save"), "Data updated");
+
+        // The saved person stays in the form
+        waitUntil(driver -> driver.getCurrentUrl().endsWith("/edit"));
+        Assertions.assertEquals(firstName, field("First Name").getValue(), "Saved person should stay in the form");
+        Assertions.assertTrue(button("Delete").isEnabled(), "Delete should be enabled for the saved person");
+    }
+
+    private void editRandomProperty() {
         EditableProperty property = EDITABLE_PROPERTIES.get(random.nextInt(EDITABLE_PROPERTIES.size()));
-        GridColumnElement column = grid.getColumn(property.caption());
-
-        String originalValue = grid.getCell(row, column).getText();
+        TextFieldElement field = field(property.caption());
         String changedValue = property.newValue().apply(randomDigits(8));
-        System.out.printf("Editing '%s' of row %d: '%s' -> '%s'%n",
-                property.caption(), row, originalValue, changedValue);
+        System.out.printf("Changing '%s': '%s' -> '%s'%n", property.caption(), field.getValue(), changedValue);
 
-        // Change the value and check the grid
-        updatePerson(grid, row, property, originalValue, changedValue);
-        waitUntil(driver -> changedValue.equals(grid.getCell(row, column).getText()));
-        Assertions.assertEquals(changedValue, grid.getCell(row, column).getText(),
-                "Grid should show the changed " + property.caption());
+        field.setValue(changedValue);
+        clickAndExpectNotification(button("Save"), "Data updated");
 
-        // Revert the change and check the grid again
-        updatePerson(grid, row, property, changedValue, originalValue);
-        waitUntil(driver -> originalValue.equals(grid.getCell(row, column).getText()));
-        Assertions.assertEquals(originalValue, grid.getCell(row, column).getText(),
-                "Grid should show the original " + property.caption() + " again");
+        Assertions.assertEquals(changedValue, field(property.caption()).getValue(),
+                "Form should show the changed " + property.caption());
     }
 
-    private void updatePerson(GridElement grid, int row, EditableProperty property,
-                              String expectedCurrentValue, String newValue) {
-        grid.select(row);
+    private void deletePerson() {
+        button("Delete").click();
+        ConfirmDialogElement dialog = $(ConfirmDialogElement.class).waitForFirst();
+        clickAndExpectNotification(dialog.getConfirmButton(), "Person deleted");
 
-        TextFieldElement field = $(TextFieldElement.class).withCaption(property.caption()).waitForSingle();
-        // Wait until the form has been populated with the selected person
-        waitUntil(driver -> expectedCurrentValue.equals(field.getValue()));
-        field.setValue(newValue);
+        waitUntilTrue(() -> field("First Name").getValue().isEmpty(), "Form should be cleared after delete");
+        waitUntilTrue(() -> !button("Delete").isEnabled(), "Delete should be disabled after delete");
+    }
 
-        // The notification of a previous save may still be open, so look for a new one
+    /**
+     * Clicks the element and waits for a new notification with the expected
+     * text. Notifications of previous actions may still be open.
+     */
+    private void clickAndExpectNotification(WebElement element, String expectedText) {
         List<NotificationElement> previousNotifications = $(NotificationElement.class).all();
-        $(ButtonElement.class).withCaption("Save").single().click();
+        element.click();
 
         NotificationElement notification = waitUntil(driver -> $(NotificationElement.class).all().stream()
                 .filter(n -> !previousNotifications.contains(n))
                 .findFirst()
                 .orElse(null));
-        Assertions.assertEquals("Data updated", notification.getText());
+        Assertions.assertEquals(expectedText, notification.getText());
+    }
+
+    private TextFieldElement field(String caption) {
+        return $(TextFieldElement.class).withCaption(caption).waitForSingle();
+    }
+
+    private ButtonElement button(String caption) {
+        return $(ButtonElement.class).withCaption(caption).waitForSingle();
     }
 
     private String randomDigits(int length) {
