@@ -1,0 +1,122 @@
+# The Vaadin application (prod profile), PostgreSQL, Prometheus and Grafana, each in its own
+# container with resource limits.
+#
+#   docker compose up --build -d     # build and start
+#   docker stats                     # watch CPU and memory usage of the containers live
+#   docker compose down              # stop (the schema is recreated on every app start anyway)
+#
+# App: http://localhost:8080, Prometheus: http://localhost:9090,
+# Grafana: http://localhost:3000 (admin/admin), dashboard "Vaadin Sizing".
+#
+# All limits can be changed without editing this file, e.g.:
+#
+#   APP_CPUS=1 APP_MEMORY=512m docker compose up -d
+#
+# For load tests, add compose.loadtest.yaml (see README.md, section "Load tests").
+
+name: sizing
+
+services:
+  app:
+    build:
+      context: .
+      secrets:
+        - proKey
+    image: sizing-app:latest
+    container_name: sizing-app
+    ports:
+      - "${APP_PORT:-8080}:8080"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/sizing
+      SPRING_DATASOURCE_USERNAME: sizing
+      SPRING_DATASOURCE_PASSWORD: sizing
+      DB_POOL_SIZE: ${DB_POOL_SIZE:-10}
+      JPA_SHOW_SQL: ${JPA_SHOW_SQL:-false}
+      # Picked up automatically by the java launcher. The heap is sized relative to APP_MEMORY;
+      # the rest is needed for metaspace, code cache, thread stacks and GC structures.
+      JDK_JAVA_OPTIONS: >-
+        -XX:MaxRAMPercentage=${APP_MAX_RAM_PERCENTAGE:-75}
+        ${APP_JAVA_OPTS:-}
+    deploy:
+      resources:
+        limits:
+          cpus: "${APP_CPUS:-2.0}"
+          memory: ${APP_MEMORY:-1g}
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  db:
+    image: postgres:18-alpine
+    container_name: sizing-db
+    environment:
+      POSTGRES_DB: sizing
+      POSTGRES_USER: sizing
+      POSTGRES_PASSWORD: sizing
+    ports:
+      # Only for local tools such as psql; 5433 avoids clashes with a local PostgreSQL
+      - "127.0.0.1:${DB_PORT:-5433}:5432"
+    # No volume: the app recreates the schema and the sample data on every start
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sizing -d sizing"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    deploy:
+      resources:
+        limits:
+          cpus: "${DB_CPUS:-1.0}"
+          memory: ${DB_MEMORY:-512m}
+    restart: unless-stopped
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: sizing-prometheus
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.retention.time=${PROMETHEUS_RETENTION:-30d}
+      # Receives the client-side metrics of k6 (see loadtest/k6-prometheus.sh)
+      - --web.enable-remote-write-receiver
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    ports:
+      - "127.0.0.1:${PROMETHEUS_PORT:-9090}:9090"
+    deploy:
+      resources:
+        limits:
+          cpus: "${PROMETHEUS_CPUS:-0.5}"
+          memory: ${PROMETHEUS_MEMORY:-512m}
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: sizing-grafana
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
+      GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /var/lib/grafana/dashboards/vaadin-sizing.json
+    volumes:
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana-data:/var/lib/grafana
+    ports:
+      - "127.0.0.1:${GRAFANA_PORT:-3000}:3000"
+    depends_on:
+      - prometheus
+    deploy:
+      resources:
+        limits:
+          cpus: "${GRAFANA_CPUS:-0.5}"
+          memory: ${GRAFANA_MEMORY:-256m}
+    restart: unless-stopped
+
+volumes:
+  prometheus-data:
+  grafana-data:
+
+secrets:
+  # Vaadin Pro key for the production build of the commercial components (see Dockerfile)
+  proKey:
+    file: ${VAADIN_PRO_KEY_FILE:-${HOME}/.vaadin/proKey}

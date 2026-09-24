@@ -105,7 +105,7 @@ public class UserNotificationAndEditScenario extends AbstractIT {
 
     private void deletePerson() {
         button("Delete").click();
-        ConfirmDialogElement dialog = $(ConfirmDialogElement.class).waitForFirst();
+        ConfirmDialogElement dialog = $(ConfirmDialogElement.class).waitForSingle();
         clickAndExpectNotification(dialog.getConfirmButton(), "Person deleted");
 
         waitUntilTrue(() -> field("First Name").getValue().isEmpty(), "Form should be cleared after delete");

@@ -1,0 +1,11 @@
+# Keep the build context small; the image builds everything from the sources
+.git/
+.idea/
+.vscode/
+target/
+node_modules/
+drivers/
+error-screenshots/
+src/main/frontend/generated/
+src/test/k6/
+monitoring/

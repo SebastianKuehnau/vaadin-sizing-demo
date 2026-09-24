@@ -50,7 +50,7 @@ public abstract class AbstractIT extends BrowserTestBase {
      * (hidden helper element of the Observability Kit) are excluded, as they
      * are plain elements that are never registered as custom elements.
      */
-    private void waitForWebComponentsUpgraded() {
+    protected void waitForWebComponentsUpgraded() {
         try {
             waitUntil(driver -> (Boolean) executeScript(VAADIN_COMPONENT_TAGS_SCRIPT
                     + "return tags.length > 0 && tags.every(tag => customElements.get(tag));"));

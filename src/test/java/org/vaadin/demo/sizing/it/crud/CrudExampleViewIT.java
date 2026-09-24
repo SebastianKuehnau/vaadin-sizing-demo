@@ -117,7 +117,7 @@ public class CrudExampleViewIT extends AbstractIT {
         String selectedName = firstName.getValue();
 
         deleteButton().click();
-        ConfirmDialogElement dialog = $(ConfirmDialogElement.class).waitForFirst();
+        ConfirmDialogElement dialog = $(ConfirmDialogElement.class).waitForSingle();
         dialog.getCancelButton().click();
 
         waitUntil(driver -> $(ConfirmDialogElement.class).all().isEmpty());
@@ -293,7 +293,7 @@ public class CrudExampleViewIT extends AbstractIT {
      */
     private void deleteCurrentPerson() {
         deleteButton().click();
-        ConfirmDialogElement dialog = $(ConfirmDialogElement.class).waitForFirst();
+        ConfirmDialogElement dialog = $(ConfirmDialogElement.class).waitForSingle();
         assertTrue(dialog.getMessageText().startsWith("Do you really want to delete"),
                 "Confirm dialog should ask before deleting");
         dialog.getConfirmButton().click();
