@@ -2,6 +2,7 @@ package org.vaadin.demo.sizing.app.ui.crud;
 
 import com.vaadin.flow.component.dependency.Uses;
 import com.vaadin.flow.component.icon.Icon;
+import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.splitlayout.SplitLayout;
@@ -15,7 +16,7 @@ import java.util.Optional;
 
 @PageTitle("Crud Example")
 @Route(value = "crud-example/:samplePersonID?/:action?(edit)")
-@Uses(Icon.class)
+@RouteAlias("")
 public class CrudExampleView extends VerticalLayout implements BeforeEnterObserver {
 
     static final String SAMPLEPERSON_ID = "samplePersonID";

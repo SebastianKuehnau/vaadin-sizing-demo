@@ -35,8 +35,8 @@ public class SamplePerson extends AbstractEntity {
     private boolean important;
 
     @OneToMany(mappedBy = "person", fetch = FetchType.EAGER, cascade = CascadeType.ALL, orphanRemoval = true)
-//    @Fetch(FetchMode.SUBSELECT)
-//    @BatchSize(size = 100)
+    @Fetch(FetchMode.SUBSELECT)
+    @BatchSize(size = 100)
     private List<Skill> skills ;
 
     public List<Skill> getSkills() {

@@ -2,7 +2,6 @@ package org.vaadin.demo.sizing;
 
 import com.vaadin.flow.component.dependency.StyleSheet;
 import com.vaadin.flow.component.page.AppShellConfigurator;
-import com.vaadin.flow.component.page.Push;
 import javax.sql.DataSource;
 
 import com.vaadin.flow.theme.aura.Aura;
@@ -21,7 +20,6 @@ import org.vaadin.demo.sizing.app.data.SamplePersonRepository;
 @EnableConfigurationProperties(SqlInitializationProperties.class)
 @StyleSheet(Aura.STYLESHEET)
 @StyleSheet("styles.css")
-@Push
 public class Application implements AppShellConfigurator {
 
     public static void main(String[] args) {

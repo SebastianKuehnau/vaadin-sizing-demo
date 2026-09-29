@@ -9,6 +9,7 @@
     <properties>
         <java.version>25</java.version>
         <vaadin.version>25.3.0</vaadin.version>
+<!--        <vaadin.version>25.4-SNAPSHOT</vaadin.version>-->
     </properties>
     <parent>
         <groupId>org.springframework.boot</groupId>
@@ -45,7 +46,7 @@
             <name>Vaadin Prereleases</name>
             <url>https://maven.vaadin.com/vaadin-prereleases</url>
             <snapshots>
-                <enabled>false</enabled>
+                <enabled>true</enabled>
             </snapshots>
         </pluginRepository>
         <pluginRepository>
@@ -89,15 +90,9 @@
             <artifactId>line-awesome</artifactId>
             <version>2.1.0</version>
         </dependency>
-        <!-- H2 for development and integration tests, PostgreSQL in Docker (prod profile) -->
         <dependency>
             <groupId>com.h2database</groupId>
             <artifactId>h2</artifactId>
-            <scope>runtime</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.postgresql</groupId>
-            <artifactId>postgresql</artifactId>
             <scope>runtime</scope>
         </dependency>
         <dependency>
@@ -131,18 +126,10 @@
             <scope>test</scope>
         </dependency>
 
-        <!-- observability -->
-        <dependency>
-            <groupId>com.vaadin</groupId>
-            <artifactId>observability-kit-starter</artifactId>
-        </dependency>
+        <!-- Heap dumps and metrics for the session size measurement (see README.md) -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-actuator</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.micrometer</groupId>
-            <artifactId>micrometer-registry-prometheus</artifactId>
         </dependency>
     </dependencies>
     <build>
@@ -219,8 +206,8 @@
         </profile>
         <!--
             Load tests with Vaadin's k6 tooling, see README.md, section "Load tests".
-            The app image under test is built with this profile (compose.loadtest.yaml), which adds
-            testbench-loadtest-support to the app. Never deploy such an image to production.
+            The Docker image is built with this profile, which adds testbench-loadtest-support to the
+            app. Never deploy such an image to production.
         -->
         <profile>
             <id>loadtest</id>
@@ -257,15 +244,13 @@
                         <version>${vaadin.version}</version>
                         <configuration>
                             <testClasses>
-                                <testClass>UserNotificationAndEditIT</testClass>
+                                <testClass>EditPersonIT</testClass>
                             </testClasses>
                             <!-- The recording runs the scenario in a forked Maven build -->
                             <mavenArgs>-Ploadtest -Dcom.vaadin.testbench.Parameters.headless=true</mavenArgs>
                             <managementPort>8081</managementPort>
                             <collectVaadinMetrics>true</collectVaadinMetrics>
                             <httpReqDurationP95>2000</httpReqDurationP95>
-                            <!-- Also writes the k6 metrics to Prometheus, see loadtest/k6-prometheus.sh -->
-                            <k6Binary>${project.basedir}/loadtest/k6-prometheus.sh</k6Binary>
                             <outputDir>${project.basedir}/src/test/k6/recordings</outputDir>
                         </configuration>
                     </plugin>

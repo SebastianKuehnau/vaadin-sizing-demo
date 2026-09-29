@@ -46,9 +46,8 @@ public abstract class AbstractIT extends BrowserTestBase {
      * the page are defined, so their internal elements (e.g. the input of a
      * text field) exist before the test interacts with them.
      * <p>
-     * {@code vaadin-grid-cell-content} and {@code vaadin-metrics-collector}
-     * (hidden helper element of the Observability Kit) are excluded, as they
-     * are plain elements that are never registered as custom elements.
+     * {@code vaadin-grid-cell-content} is excluded, as it is a plain element
+     * that is never registered as a custom element.
      */
     protected void waitForWebComponentsUpgraded() {
         try {
@@ -65,7 +64,7 @@ public abstract class AbstractIT extends BrowserTestBase {
     private static final String VAADIN_COMPONENT_TAGS_SCRIPT =
             "const tags = [...new Set([...document.querySelectorAll('*')].map(e => e.localName))]"
                     + ".filter(tag => tag.startsWith('vaadin-')"
-                    + " && !['vaadin-grid-cell-content', 'vaadin-metrics-collector'].includes(tag));";
+                    + " && tag !== 'vaadin-grid-cell-content');";
 
     /**
      * Waits until the condition is true. Elements may be re-rendered while the

@@ -25,3 +25,9 @@ src/test/k6/utils/
 src/test/k6/recordings/*-generated.js
 src/test/k6/recordings/combined-scenarios.js
 src/test/k6/recordings/report/
+
+# Heap dumps (see README.md)
+*.hprof
+heapdump
+# Results of loadtest/measure-session-size.sh
+results/

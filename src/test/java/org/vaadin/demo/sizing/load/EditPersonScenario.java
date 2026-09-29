@@ -17,14 +17,13 @@ import java.util.Random;
 import java.util.function.Function;
 
 /**
- * End-to-end scenario: the user greets themselves in the Hello World view,
- * then creates a new person in the CRUD view, changes a random property of it
- * and deletes it again.
+ * End-to-end scenario of one user in one browser tab: opens the CRUD view,
+ * creates a new person, changes a random property of it and deletes it again.
  * <p>
  * The scenario only works on the person it created itself and does not click
  * on grid rows, so it can be replayed by many virtual users in parallel.
  */
-public class UserNotificationAndEditScenario extends AbstractIT {
+public class EditPersonScenario extends AbstractIT {
 
     /**
      * A property of the person that is editable in the form as a text field.
@@ -45,26 +44,16 @@ public class UserNotificationAndEditScenario extends AbstractIT {
 
     @Override
     public String getViewName() {
-        return "";
+        return "crud-example";
     }
 
     @BrowserTest
-    public void greetUserThenCreateEditAndDeletePerson() {
+    public void createEditAndDeletePerson() {
         System.out.println(getClass().getSimpleName() + " random seed: " + seed);
 
-        greetUserAndCheckNotification();
-
-        navigateTo("crud-example");
         createPerson();
         editRandomProperty();
         deletePerson();
-    }
-
-    private void greetUserAndCheckNotification() {
-        String name = "User" + randomDigits(6);
-
-        $(TextFieldElement.class).withCaption("Your name").waitForSingle().setValue(name);
-        clickAndExpectNotification($(ButtonElement.class).withCaption("Say hello").single(), "Hello " + name);
     }
 
     private void createPerson() {

@@ -1,8 +1,10 @@
 package org.vaadin.demo.sizing.app.ui.crud;
 
 import com.vaadin.flow.component.UI;
+import com.vaadin.flow.component.dependency.Uses;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.html.Div;
+import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.data.renderer.LitRenderer;
 import com.vaadin.flow.function.SerializableRunnable;
 import com.vaadin.flow.spring.data.VaadinSpringDataHelpers;
@@ -10,6 +12,7 @@ import org.springframework.data.domain.PageRequest;
 import org.vaadin.demo.sizing.app.data.SamplePerson;
 import org.vaadin.demo.sizing.app.service.SamplePersonService;
 
+@Uses(Icon.class)
 class PersonGrid extends Div {
 
     private final Grid<SamplePerson> grid = new Grid<>(SamplePerson.class, false);
@@ -25,18 +28,13 @@ class PersonGrid extends Div {
         grid.addColumn("dateOfBirth").setAutoWidth(true);
         grid.addColumn("occupation").setAutoWidth(true);
         grid.addColumn("role").setAutoWidth(true);
-        LitRenderer<SamplePerson> importantRenderer = LitRenderer.<SamplePerson>of(
-                        "<vaadin-icon icon='vaadin:${item.icon}' style='width: var(--vaadin-icon-size); height: var(--vaadin-icon-size); color: ${item.color};'></vaadin-icon>")
-                .withProperty("icon", important -> important.isImportant() ? "check" : "minus").withProperty("color",
-                        important -> important.isImportant()
-                                ? "var(--aura-accent-text-color)"
-                                : "var(--vaadin-text-color-disabled)");
-
+        var importantRenderer = LitRenderer.<SamplePerson>of(
+                        "<vaadin-icon icon='vaadin:${item.icon}' style='color: ${item.color};'></vaadin-icon>")
+                .withProperty("icon", important -> important.isImportant() ? "check" : "minus")
+                .withProperty("color", important -> important.isImportant()
+                        ? "var(--aura-accent-text-color)" : "var(--vaadin-text-color-disabled)");
         grid.addColumn(importantRenderer).setHeader("Important").setAutoWidth(true);
 
-        //grid.addThemeVariants(GridVariant.LUMO_NO_BORDER);
-
-        // Configure Grid
         grid.setItems(
                 query -> samplePersonService.list(
                                 PageRequest.of(query.getPage(), query.getPageSize(), VaadinSpringDataHelpers.toSpringDataSort(query)))
@@ -66,7 +64,7 @@ class PersonGrid extends Div {
      * edit route via the selection listener.
      */
     void refreshAndSelect(SamplePerson person) {
-        grid.getDataProvider().refreshAll();
+        grid.getDataProvider().refreshItem(person);
         grid.select(person);
     }
 }
