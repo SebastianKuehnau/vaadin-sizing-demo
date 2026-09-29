@@ -68,17 +68,19 @@ Result (100 users, `results/<timestamp>/summary.txt`):
 
 ```
                  live heap   sessions
-before             99.4 MB        236
-after             119.8 MB        336
+before            107.5 MB        300
+after             126.3 MB        400
 
-memory per session:            209 KB  (100 new sessions)
-live heap without sessions:   51.1 MB
+memory per session:            193 KB  (100 new sessions)
+live heap without sessions:   50.9 MB
 ```
+
+Three runs in a row gave 182, 193 and 191 KB.
 
 The heap dumps `before.hprof` and `after.hprof` stay in the result directory. In VisualVM or
 Eclipse MAT, the **retained size of one `com.vaadin.flow.component.UI`** is the component tree and
-data of one tab, here **180 KB**; the difference to the measured 209 KB is the session itself
-(Tomcat and Vaadin session, a few KB) and about 10 % noise. The retained size of `VaadinSession`
+data of one tab, here **186 KB**; the rest of the measured value is the session itself (Tomcat
+and Vaadin session, a few KB) and some noise. The retained size of `VaadinSession`
 is useless here (2 KB): `testbench-loadtest-support` references every UI from a global object, so
 the UIs are no longer "owned" by their session.
 
@@ -88,6 +90,10 @@ the UIs are no longer "owned" by their session.
   the number of sessions in the heap is exactly known.
 - **Take the dumps soon after the run.** k6 does not send heartbeats; Vaadin removes a UI after
   three missed heartbeats (about 15 minutes by default), and the session would look smaller.
+- **The heap must be compacted completely.** For small containers the JVM picks the serial GC,
+  whose full GC leaves up to 5 % of dead objects in the heap and compacts completely only every
+  4th time. The dead objects count as used heap and add up to ±80 KB per session of noise, so
+  `compose.yaml` sets `-XX:MarkSweepAlwaysCompactCount=1`.
 - **It is the state at the end of the scenario.** A user in the middle of their work (open dialog,
   filled form) holds somewhat more. Scenarios should end in a typical state.
 - **The code decides.** The same view with the grid filled in memory (`setItems(list)`, all 1,000
@@ -110,7 +116,7 @@ max heap        ≥ (live heap without sessions + concurrent sessions × memory 
 | non-heap (metaspace, code cache) | ~175 MB | grows with the amount of code, not with users |
 | native (threads, GC, buffers) | ~100 MB | |
 | live heap without sessions | ~50 MB | `summary.txt` |
-| memory per session | ~210 KB | `summary.txt` |
+| memory per session | ~190 KB | `summary.txt` |
 | factor 2 | | headroom, so the GC does not run constantly |
 
 **Concurrent sessions** (Little's law): new sessions per minute × (minutes in the app + session
@@ -120,8 +126,8 @@ Example: 20 logins per minute, 15 minutes in the app, 30 minutes timeout:
 
 ```
 sessions  = 20 × (15 + 30)                 =   900
-max heap  = (50 MB + 900 × 0.21 MB) × 2    ≈   480 MB
-container = 175 MB + 100 MB + 480 MB       ≈   755 MB  → 1 GB, heap limited to ~500 MB
+max heap  = (50 MB + 900 × 0.19 MB) × 2    ≈   440 MB
+container = 175 MB + 100 MB + 440 MB       ≈   715 MB  → 1 GB, heap limited to ~500 MB
 ```
 
 The JVM does not size the heap on its own terms: in a container it takes `MaxRAMPercentage` of

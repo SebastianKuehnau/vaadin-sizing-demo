@@ -24,8 +24,13 @@ services:
     environment:
       # Picked up automatically by the java launcher. The heap is sized relative to APP_MEMORY;
       # the rest is needed for metaspace, code cache, thread stacks and GC structures.
+      # MarkSweepAlwaysCompactCount=1: every full GC (e.g. of a heap dump) compacts the heap
+      # completely. By default, the serial GC, which the JVM picks for small containers, leaves up
+      # to 5 % of dead objects in the heap and compacts fully only every 4th time, which adds
+      # several MB of noise to the measured heap (see loadtest/measure-session-size.sh).
       JDK_JAVA_OPTIONS: >-
         -XX:MaxRAMPercentage=${APP_MAX_RAM_PERCENTAGE:-75}
+        -XX:MarkSweepAlwaysCompactCount=1
         ${APP_JAVA_OPTS:-}
     deploy:
       resources:
