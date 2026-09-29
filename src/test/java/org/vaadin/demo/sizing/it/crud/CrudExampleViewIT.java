@@ -119,10 +119,8 @@ public class CrudExampleViewIT extends AbstractIT {
 
         // New persons are appended (no sort order); the grid shows and selects it without reloading the page
         waitUntilTrue(() -> grid.getRowCount() > rowCountBefore, "Grid should contain the new row");
-        int lastRow = grid.getRowCount() - 1;
-        grid.scrollToRow(lastRow);
-        waitUntilTrue(() -> findRow(grid, firstName, lastRow) >= 0, "New person should be shown in the grid");
-        assertTrue(grid.getRow(findRow(grid, firstName, lastRow)).isSelected(), "New person should be selected in the grid");
+        waitUntilTrue(() -> findRow(grid, firstName) >= 0, "New person should be shown in the grid");
+        assertTrue(grid.getRow(findRow(grid, firstName)).isSelected(), "New person should be selected in the grid");
 
         // Clean up
         deleteCurrentPerson();
@@ -130,13 +128,20 @@ public class CrudExampleViewIT extends AbstractIT {
 
     /**
      * Returns the index of the row with the given first name among the last
-     * rows up to {@code lastRow}, or -1.
+     * rows of the grid, or -1. Parallel tests may add or delete persons at the
+     * same time, so the row count can change while looking.
      */
-    private int findRow(GridElement grid, String firstName, int lastRow) {
-        for (int row = lastRow; row >= Math.max(0, lastRow - 5); row--) {
-            if (firstName.equals(grid.getCell(row, 0).getText())) {
-                return row;
+    private int findRow(GridElement grid, String firstName) {
+        try {
+            int lastRow = grid.getRowCount() - 1;
+            grid.scrollToRow(lastRow);
+            for (int row = lastRow; row >= Math.max(0, lastRow - 5); row--) {
+                if (firstName.equals(grid.getCell(row, 0).getText())) {
+                    return row;
+                }
             }
+        } catch (IndexOutOfBoundsException e) {
+            // the row count changed in between
         }
         return -1;
     }

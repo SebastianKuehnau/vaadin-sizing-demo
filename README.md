@@ -44,9 +44,8 @@ results apart, e.g. `loadtest/measure-session-size.sh in-memory`.
 ### The scenario
 
 `EditPersonScenario` is one user in one browser tab: open the view, create a person, change a
-random field, save, delete the person. `EditPersonIT` runs it once in Chrome through a recording
-proxy (`loadtest:record` of the `testbench-converter-plugin`), which turns the traffic into the k6
-script `src/test/k6/recordings/edit-person.js`. k6 replays it with any number of virtual users;
+random field, save, delete the person. `loadtest:record` (`testbench-converter-plugin`) runs it
+once in Chrome through a recording proxy and turns the traffic into the k6 script `src/test/k6/recordings/edit-person.js`. k6 replays it with any number of virtual users;
 every virtual user leaves exactly **one session with one UI** behind.
 
 ### How the measurement works
@@ -148,7 +147,6 @@ src/main/java/org/vaadin/demo/sizing
      └─ ui/crud/...         # the view (PersonGrid + PersonForm)
 src/test/java/.../it/       # TestBench browser tests
 src/test/java/.../load/     # EditPersonScenario, the basis of the load test
-src/loadtest/java/...       # EditPersonIT, the scenario routed through the recording proxy
 src/test/k6/recordings/     # recorded k6 script and its test data
 loadtest/                   # rebuild.sh, measure-session-size.sh
 Dockerfile, compose.yaml    # the app in a container with memory and CPU limits

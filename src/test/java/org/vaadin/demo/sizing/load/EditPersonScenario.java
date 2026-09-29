@@ -7,7 +7,9 @@ import com.vaadin.flow.component.datepicker.testbench.DatePickerElement;
 import com.vaadin.flow.component.notification.testbench.NotificationElement;
 import com.vaadin.flow.component.textfield.testbench.TextFieldElement;
 import com.vaadin.testbench.BrowserTest;
+import com.vaadin.testbench.loadtest.LoadTestItHelper;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
 import org.openqa.selenium.WebElement;
 import org.vaadin.demo.sizing.it.AbstractIT;
 
@@ -21,7 +23,10 @@ import java.util.function.Function;
  * creates a new person, changes a random property of it and deletes it again.
  * <p>
  * The scenario only works on the person it created itself and does not click
- * on grid rows, so it can be replayed by many virtual users in parallel.
+ * on grid rows, so it can be replayed by many virtual users in parallel. * <p>
+ * It is also the basis of the k6 load test: {@code loadtest:record} runs it with
+ * {@code -Dk6.proxy.host}, and the browser traffic captured by the proxy becomes
+ * {@code src/test/k6/recordings/edit-person.js} (see README.md).
  */
 public class EditPersonScenario extends AbstractIT {
 
@@ -41,6 +46,17 @@ public class EditPersonScenario extends AbstractIT {
 
     private final long seed = System.currentTimeMillis();
     private final Random random = new Random(seed);
+
+    /**
+     * Routes the browser through the recording proxy when {@code k6.proxy.host}
+     * is set (by {@code loadtest:record}); otherwise the driver stays as it is.
+     */
+    @Override
+    @BeforeEach
+    public void open() {
+        setDriver(LoadTestItHelper.setupProxy(getDriver()));
+        super.open();
+    }
 
     @Override
     public String getViewName() {

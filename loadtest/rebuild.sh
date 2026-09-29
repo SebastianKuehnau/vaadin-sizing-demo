@@ -23,7 +23,7 @@ done
 curl -sf "http://127.0.0.1:$MANAGEMENT_PORT/actuator/health" >/dev/null \
     || { echo "The app did not start, see: docker compose logs app" >&2; exit 1; }
 
-echo "3/3 Recording the k6 script (runs EditPersonIT in Chrome through the recording proxy)"
+echo "3/3 Recording the k6 script (runs EditPersonScenario in Chrome through the recording proxy)"
 ./mvnw -q -Ploadtest test-compile loadtest:record -Dk6.forceRecord=true
 
 echo "Done. Measure with: loadtest/measure-session-size.sh"

@@ -125,6 +125,13 @@
             <artifactId>vaadin-testbench-junit5</artifactId>
             <scope>test</scope>
         </dependency>
+        <!-- Routes EditPersonScenario through the recording proxy of loadtest:record -->
+        <dependency>
+            <groupId>com.vaadin</groupId>
+            <artifactId>testbench-loadtest-support</artifactId>
+            <version>${vaadin.version}</version>
+            <scope>test</scope>
+        </dependency>
 
         <!-- Heap dumps and metrics for the session size measurement (see README.md) -->
         <dependency>
@@ -212,39 +219,23 @@
         <profile>
             <id>loadtest</id>
             <dependencies>
+                <!-- Also in the app (compile scope instead of test): server exceptions become visible to k6 -->
                 <dependency>
                     <groupId>com.vaadin</groupId>
                     <artifactId>testbench-loadtest-support</artifactId>
                     <version>${vaadin.version}</version>
+                    <scope>compile</scope>
                 </dependency>
             </dependencies>
             <build>
                 <plugins>
-                    <plugin>
-                        <groupId>org.codehaus.mojo</groupId>
-                        <artifactId>build-helper-maven-plugin</artifactId>
-                        <executions>
-                            <execution>
-                                <id>add-loadtest-sources</id>
-                                <phase>generate-test-sources</phase>
-                                <goals>
-                                    <goal>add-test-source</goal>
-                                </goals>
-                                <configuration>
-                                    <sources>
-                                        <source>src/loadtest/java</source>
-                                    </sources>
-                                </configuration>
-                            </execution>
-                        </executions>
-                    </plugin>
                     <plugin>
                         <groupId>com.vaadin</groupId>
                         <artifactId>testbench-converter-plugin</artifactId>
                         <version>${vaadin.version}</version>
                         <configuration>
                             <testClasses>
-                                <testClass>EditPersonIT</testClass>
+                                <testClass>EditPersonScenario</testClass>
                             </testClasses>
                             <!-- The recording runs the scenario in a forked Maven build -->
                             <mavenArgs>-Ploadtest -Dcom.vaadin.testbench.Parameters.headless=true</mavenArgs>
