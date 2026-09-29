@@ -103,6 +103,45 @@ public class CrudExampleViewIT extends AbstractIT {
     }
 
     @BrowserTest
+    public void testNewPersonAppearsInGrid() {
+        GridElement grid = $(GridElement.class).waitForSingle();
+        waitUntilTrue(() -> grid.getRowCount() > 0, "Grid should load its rows");
+        int rowCountBefore = grid.getRowCount();
+
+        // Unique name, as the tests run in parallel and may add persons at the same time
+        String firstName = "Grid" + System.nanoTime();
+        fillPersonForm(firstName, "Newcomer", "grid.newcomer@example.com",
+                "+49111222333", LocalDate.of(1992, 7, 1),
+                "Tester", "QA", false);
+        $(ButtonElement.class).withCaption("Save").single().click();
+        assertNotificationShown("Data updated");
+        waitForEditUrl();
+
+        // New persons are appended (no sort order); the grid shows and selects it without reloading the page
+        waitUntilTrue(() -> grid.getRowCount() > rowCountBefore, "Grid should contain the new row");
+        int lastRow = grid.getRowCount() - 1;
+        grid.scrollToRow(lastRow);
+        waitUntilTrue(() -> findRow(grid, firstName, lastRow) >= 0, "New person should be shown in the grid");
+        assertTrue(grid.getRow(findRow(grid, firstName, lastRow)).isSelected(), "New person should be selected in the grid");
+
+        // Clean up
+        deleteCurrentPerson();
+    }
+
+    /**
+     * Returns the index of the row with the given first name among the last
+     * rows up to {@code lastRow}, or -1.
+     */
+    private int findRow(GridElement grid, String firstName, int lastRow) {
+        for (int row = lastRow; row >= Math.max(0, lastRow - 5); row--) {
+            if (firstName.equals(grid.getCell(row, 0).getText())) {
+                return row;
+            }
+        }
+        return -1;
+    }
+
+    @BrowserTest
     public void testDeleteDisabledWithoutSelection() {
         assertFalse(deleteButton().isEnabled(), "Delete button should be disabled when no person is selected");
     }

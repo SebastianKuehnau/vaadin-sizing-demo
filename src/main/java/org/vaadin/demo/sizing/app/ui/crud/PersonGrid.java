@@ -64,7 +64,7 @@ class PersonGrid extends Div {
      * edit route via the selection listener.
      */
     void refreshAndSelect(SamplePerson person) {
-        grid.getDataProvider().refreshItem(person);
+        grid.getDataProvider().refreshAll();
         grid.select(person);
     }
 }
