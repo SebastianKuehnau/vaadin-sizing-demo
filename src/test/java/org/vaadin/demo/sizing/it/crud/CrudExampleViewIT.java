@@ -255,6 +255,11 @@ public class CrudExampleViewIT extends AbstractIT {
         assertTrue(grid.getColumn("Date Of Birth").getHeaderCell().isDisplayed(), "Date of birth column should be visible");
         assertTrue(grid.getColumn("Occupation").getHeaderCell().isDisplayed(), "Occupation column should be visible");
         assertTrue(grid.getColumn("Role").getHeaderCell().isDisplayed(), "Role column should be visible");
+        assertTrue(grid.getColumn("Skills").getHeaderCell().isDisplayed(), "Skills column should be visible");
+
+        // The first person has several skills, shown as a comma-separated list
+        waitUntilTrue(() -> grid.getCell(0, grid.getColumn("Skills")).getText().contains(", "),
+                "Skills column should list the skills of the person");
         assertTrue(grid.getColumn("Important").getHeaderCell().isDisplayed(), "Important column should be visible");
     }
 

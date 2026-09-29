@@ -9,7 +9,10 @@ import com.vaadin.flow.data.renderer.LitRenderer;
 import com.vaadin.flow.function.SerializableRunnable;
 import com.vaadin.flow.spring.data.VaadinSpringDataHelpers;
 import org.springframework.data.domain.PageRequest;
+
+import java.util.stream.Collectors;
 import org.vaadin.demo.sizing.app.data.SamplePerson;
+import org.vaadin.demo.sizing.app.data.Skill;
 import org.vaadin.demo.sizing.app.service.SamplePersonService;
 
 @Uses(Icon.class)
@@ -28,6 +31,8 @@ class PersonGrid extends Div {
         grid.addColumn("dateOfBirth").setAutoWidth(true);
         grid.addColumn("occupation").setAutoWidth(true);
         grid.addColumn("role").setAutoWidth(true);
+        grid.addColumn(person -> person.getSkills().stream().map(Skill::getName).collect(Collectors.joining(", ")))
+                .setHeader("Skills").setAutoWidth(true);
         var importantRenderer = LitRenderer.<SamplePerson>of(
                         "<vaadin-icon icon='vaadin:${item.icon}' style='color: ${item.color};'></vaadin-icon>")
                 .withProperty("icon", important -> important.isImportant() ? "check" : "minus")

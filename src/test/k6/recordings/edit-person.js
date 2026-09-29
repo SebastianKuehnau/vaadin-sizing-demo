@@ -14,18 +14,18 @@ export const options = {
     http_req_duration: ['p(95)<2000', 'p(99)<5000'],
     'http_req_duration{name:edit-person: 1 GET /crud-example}': ['max>=0'],
     'http_req_duration{name:edit-person: 2 GET /VAADIN/build/indexhtml-CRBK0SRI.js}': ['max>=0'],
-    'http_req_duration{name:edit-person: 3 GET /styles.css}': ['max>=0'],
-    'http_req_duration{name:edit-person: 4 GET /VAADIN/build/frontend-DYOqZG7p.js}': ['max>=0'],
-    'http_req_duration{name:edit-person: 5 GET /aura/aura.css}': ['max>=0'],
-    'http_req_duration{name:edit-person: 6 GET /VAADIN/build/rolldown-runtime-8BhlS34s.js}': ['max>=0'],
+    'http_req_duration{name:edit-person: 3 GET /aura/aura.css}': ['max>=0'],
+    'http_req_duration{name:edit-person: 4 GET /VAADIN/build/rolldown-runtime-8BhlS34s.js}': ['max>=0'],
+    'http_req_duration{name:edit-person: 5 GET /VAADIN/build/frontend-DYOqZG7p.js}': ['max>=0'],
+    'http_req_duration{name:edit-person: 6 GET /styles.css}': ['max>=0'],
     'http_req_duration{name:edit-person: 7 GET /aura/fonts/InstrumentSans/InstrumentSans.woff2}': ['max>=0'],
     'http_req_duration{name:edit-person: 8 GET init}': ['max>=0'],
-    'http_req_duration{name:edit-person: 9 GET /edgedl/diffgen-puffin/ceofaddefefcbblgcgnibnonglccbfja/...}': ['max>=0'],
-    'http_req_duration{name:edit-person: 10 GET /VAADIN/build/FlowBootstrap-xhSPwkAC.js}': ['max>=0'],
-    'http_req_duration{name:edit-person: 11 GET /VAADIN/build/generated-flow-imports-BIIPXANG.js}': ['max>=0'],
-    'http_req_duration{name:edit-person: 12 GET /VAADIN/build/FlowClient-DVypvd1h.js}': ['max>=0'],
-    'http_req_duration{name:edit-person: 13 GET /VAADIN/build/ApplicationConnection-DodrPk-H.js}': ['max>=0'],
-    'http_req_duration{name:edit-person: 14 POST uidl}': ['max>=0'],
+    'http_req_duration{name:edit-person: 9 GET /VAADIN/build/FlowBootstrap-xhSPwkAC.js}': ['max>=0'],
+    'http_req_duration{name:edit-person: 10 GET /VAADIN/build/generated-flow-imports-BIIPXANG.js}': ['max>=0'],
+    'http_req_duration{name:edit-person: 11 GET /VAADIN/build/FlowClient-DVypvd1h.js}': ['max>=0'],
+    'http_req_duration{name:edit-person: 12 GET /VAADIN/build/ApplicationConnection-DodrPk-H.js}': ['max>=0'],
+    'http_req_duration{name:edit-person: 13 POST uidl}': ['max>=0'],
+    'http_req_duration{name:edit-person: 14 GET /edgedl/diffgen-puffin/ceofaddefefcbblgcgnibnonglccbfja/...}': ['max>=0'],
     'http_req_duration{name:edit-person: 15 GET /VAADIN/build/chunk-...-BaTzdjoW.js}': ['max>=0'],
     'http_req_duration{name:edit-person: 16 POST uidl}': ['max>=0'],
     'http_req_duration{name:edit-person: 17 POST uidl}': ['max>=0'],
@@ -132,7 +132,7 @@ const hillaCsrfToken = getHillaCsrfToken(response.body);
     console.error(`edit-person: 1 GET /crud-example: HTTP ${response.status} ${response.url} - ${String(response.body).substring(0, 200)}`)
   }
 
-  // HAR_DELTA_MS: 127
+  // HAR_DELTA_MS: 122
   // Request 2: GET http://localhost:8080/VAADIN/build/indexhtml-CRBK0SRI.js
   response = http.get(
     `${BASE_URL}/VAADIN/build/indexhtml-CRBK0SRI.js`,
@@ -160,60 +160,7 @@ const hillaCsrfToken = getHillaCsrfToken(response.body);
   }
 
   // HAR_DELTA_MS: 0
-  // Request 3: GET http://localhost:8080/styles.css?v-c=7fec18be
-  response = http.get(
-    `${BASE_URL}/styles.css?v-c=7fec18be`,
-    {
-      headers: {
-      'Proxy-Connection': 'keep-alive',
-      'sec-ch-ua-platform': '"macOS"',
-      'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/154.0.0.0 Safari/537.36',
-      'sec-ch-ua': '"Chromium";v="154", "Google Chrome";v="154", "Not A(Brand";v="99"',
-      'sec-ch-ua-mobile': '?0',
-      'Accept': 'text/css,*/*;q=0.1',
-      'Sec-Fetch-Site': 'same-origin',
-      'Sec-Fetch-Mode': 'no-cors',
-      'Sec-Fetch-Dest': 'style',
-      'Referer': `${BASE_URL}/crud-example`,
-      'Accept-Language': 'en-GB,en-US;q=0.9,en;q=0.8'
-    },
-      tags: { name: 'edit-person: 3 GET /styles.css' }
-    }
-  )
-
-  if (!check(response, { 'status < 400': (r) => r.status < 400 }, { name: 'edit-person: 3 GET /styles.css' })) {
-    console.error(`edit-person: 3 GET /styles.css: HTTP ${response.status} ${response.url} - ${String(response.body).substring(0, 200)}`)
-  }
-
-  // HAR_DELTA_MS: 0
-  // Request 4: GET http://localhost:8080/VAADIN/build/frontend-DYOqZG7p.js
-  response = http.get(
-    `${BASE_URL}/VAADIN/build/frontend-DYOqZG7p.js`,
-    {
-      headers: {
-      'Proxy-Connection': 'keep-alive',
-      'Origin': `${BASE_URL}`,
-      'sec-ch-ua-platform': '"macOS"',
-      'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/154.0.0.0 Safari/537.36',
-      'sec-ch-ua': '"Chromium";v="154", "Google Chrome";v="154", "Not A(Brand";v="99"',
-      'sec-ch-ua-mobile': '?0',
-      'Accept': '*/*',
-      'Sec-Fetch-Site': 'same-origin',
-      'Sec-Fetch-Mode': 'cors',
-      'Sec-Fetch-Dest': 'script',
-      'Referer': `${BASE_URL}/crud-example`,
-      'Accept-Language': 'en-GB,en-US;q=0.9,en;q=0.8'
-    },
-      tags: { name: 'edit-person: 4 GET /VAADIN/build/frontend-DYOqZG7p.js' }
-    }
-  )
-
-  if (!check(response, { 'status < 400': (r) => r.status < 400 }, { name: 'edit-person: 4 GET /VAADIN/build/frontend-DYOqZG7p.js' })) {
-    console.error(`edit-person: 4 GET /VAADIN/build/frontend-DYOqZG7p.js: HTTP ${response.status} ${response.url} - ${String(response.body).substring(0, 200)}`)
-  }
-
-  // HAR_DELTA_MS: 1
-  // Request 5: GET http://localhost:8080/aura/aura.css?v-c=af4a6541
+  // Request 3: GET http://localhost:8080/aura/aura.css?v-c=af4a6541
   response = http.get(
     `${BASE_URL}/aura/aura.css?v-c=af4a6541`,
     {
@@ -230,16 +177,16 @@ const hillaCsrfToken = getHillaCsrfToken(response.body);
       'Referer': `${BASE_URL}/crud-example`,
       'Accept-Language': 'en-GB,en-US;q=0.9,en;q=0.8'
     },
-      tags: { name: 'edit-person: 5 GET /aura/aura.css' }
+      tags: { name: 'edit-person: 3 GET /aura/aura.css' }
     }
   )
 
-  if (!check(response, { 'status < 400': (r) => r.status < 400 }, { name: 'edit-person: 5 GET /aura/aura.css' })) {
-    console.error(`edit-person: 5 GET /aura/aura.css: HTTP ${response.status} ${response.url} - ${String(response.body).substring(0, 200)}`)
+  if (!check(response, { 'status < 400': (r) => r.status < 400 }, { name: 'edit-person: 3 GET /aura/aura.css' })) {
+    console.error(`edit-person: 3 GET /aura/aura.css: HTTP ${response.status} ${response.url} - ${String(response.body).substring(0, 200)}`)
   }
 
-  // HAR_DELTA_MS: 0
-  // Request 6: GET http://localhost:8080/VAADIN/build/rolldown-runtime-8BhlS34s.js
+  // HAR_DELTA_MS: 1
+  // Request 4: GET http://localhost:8080/VAADIN/build/rolldown-runtime-8BhlS34s.js
   response = http.get(
     `${BASE_URL}/VAADIN/build/rolldown-runtime-8BhlS34s.js`,
     {
@@ -257,15 +204,68 @@ const hillaCsrfToken = getHillaCsrfToken(response.body);
       'Referer': `${BASE_URL}/crud-example`,
       'Accept-Language': 'en-GB,en-US;q=0.9,en;q=0.8'
     },
-      tags: { name: 'edit-person: 6 GET /VAADIN/build/rolldown-runtime-8BhlS34s.js' }
+      tags: { name: 'edit-person: 4 GET /VAADIN/build/rolldown-runtime-8BhlS34s.js' }
     }
   )
 
-  if (!check(response, { 'status < 400': (r) => r.status < 400 }, { name: 'edit-person: 6 GET /VAADIN/build/rolldown-runtime-8BhlS34s.js' })) {
-    console.error(`edit-person: 6 GET /VAADIN/build/rolldown-runtime-8BhlS34s.js: HTTP ${response.status} ${response.url} - ${String(response.body).substring(0, 200)}`)
+  if (!check(response, { 'status < 400': (r) => r.status < 400 }, { name: 'edit-person: 4 GET /VAADIN/build/rolldown-runtime-8BhlS34s.js' })) {
+    console.error(`edit-person: 4 GET /VAADIN/build/rolldown-runtime-8BhlS34s.js: HTTP ${response.status} ${response.url} - ${String(response.body).substring(0, 200)}`)
   }
 
-  // HAR_DELTA_MS: 215
+  // HAR_DELTA_MS: 0
+  // Request 5: GET http://localhost:8080/VAADIN/build/frontend-DYOqZG7p.js
+  response = http.get(
+    `${BASE_URL}/VAADIN/build/frontend-DYOqZG7p.js`,
+    {
+      headers: {
+      'Proxy-Connection': 'keep-alive',
+      'Origin': `${BASE_URL}`,
+      'sec-ch-ua-platform': '"macOS"',
+      'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/154.0.0.0 Safari/537.36',
+      'sec-ch-ua': '"Chromium";v="154", "Google Chrome";v="154", "Not A(Brand";v="99"',
+      'sec-ch-ua-mobile': '?0',
+      'Accept': '*/*',
+      'Sec-Fetch-Site': 'same-origin',
+      'Sec-Fetch-Mode': 'cors',
+      'Sec-Fetch-Dest': 'script',
+      'Referer': `${BASE_URL}/crud-example`,
+      'Accept-Language': 'en-GB,en-US;q=0.9,en;q=0.8'
+    },
+      tags: { name: 'edit-person: 5 GET /VAADIN/build/frontend-DYOqZG7p.js' }
+    }
+  )
+
+  if (!check(response, { 'status < 400': (r) => r.status < 400 }, { name: 'edit-person: 5 GET /VAADIN/build/frontend-DYOqZG7p.js' })) {
+    console.error(`edit-person: 5 GET /VAADIN/build/frontend-DYOqZG7p.js: HTTP ${response.status} ${response.url} - ${String(response.body).substring(0, 200)}`)
+  }
+
+  // HAR_DELTA_MS: 0
+  // Request 6: GET http://localhost:8080/styles.css?v-c=7fec18be
+  response = http.get(
+    `${BASE_URL}/styles.css?v-c=7fec18be`,
+    {
+      headers: {
+      'Proxy-Connection': 'keep-alive',
+      'sec-ch-ua-platform': '"macOS"',
+      'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/154.0.0.0 Safari/537.36',
+      'sec-ch-ua': '"Chromium";v="154", "Google Chrome";v="154", "Not A(Brand";v="99"',
+      'sec-ch-ua-mobile': '?0',
+      'Accept': 'text/css,*/*;q=0.1',
+      'Sec-Fetch-Site': 'same-origin',
+      'Sec-Fetch-Mode': 'no-cors',
+      'Sec-Fetch-Dest': 'style',
+      'Referer': `${BASE_URL}/crud-example`,
+      'Accept-Language': 'en-GB,en-US;q=0.9,en;q=0.8'
+    },
+      tags: { name: 'edit-person: 6 GET /styles.css' }
+    }
+  )
+
+  if (!check(response, { 'status < 400': (r) => r.status < 400 }, { name: 'edit-person: 6 GET /styles.css' })) {
+    console.error(`edit-person: 6 GET /styles.css: HTTP ${response.status} ${response.url} - ${String(response.body).substring(0, 200)}`)
+  }
+
+  // HAR_DELTA_MS: 119
   // Request 7: GET http://localhost:8080/aura/fonts/InstrumentSans/InstrumentSans.woff2
   response = http.get(
     `${BASE_URL}/aura/fonts/InstrumentSans/InstrumentSans.woff2`,
@@ -295,7 +295,7 @@ const hillaCsrfToken = getHillaCsrfToken(response.body);
   // HAR_DELTA_MS: 13
   // Request 8: GET http://localhost:8080/?v-r=init&location=crud-example&query=&v-sh=600&v-sw=80...
   response = http.get(
-    `${BASE_URL}/?v-r=init&location=crud-example&query=&v-sh=600&v-sw=800&v-wh=413&v-ww=756&v-bh=413&v-bw=756&v-curdate=1790670857854&v-tzo=-120&v-dstd=60&v-rtzo=-60&v-dston=true&v-tzid=Europe%2FBerlin&v-wn=v-0.6184369359638544&v-td=false&v-pr=1&v-np=MacIntel&v-cs=&v-pv=VISIBLE&v-fs=NOT_FULLSCREEN&v-so=landscape-primary&v-soa=0&v-tn=aura&v-ga=GRANTED&v-wla=SUPPORTED&v-ws=true`,
+    `${BASE_URL}/?v-r=init&location=crud-example&query=&v-sh=600&v-sw=800&v-wh=413&v-ww=756&v-bh=413&v-bw=756&v-curdate=1790671704434&v-tzo=-120&v-dstd=60&v-rtzo=-60&v-dston=true&v-tzid=Europe%2FBerlin&v-wn=v-0.8778000407995855&v-td=false&v-pr=1&v-np=MacIntel&v-cs=&v-pv=VISIBLE&v-fs=NOT_FULLSCREEN&v-so=landscape-primary&v-soa=0&v-tn=aura&v-ga=GRANTED&v-wla=SUPPORTED&v-ws=true`,
     {
       headers: {
       'Proxy-Connection': 'keep-alive',
@@ -326,6 +326,9 @@ const hillaCsrfToken = getHillaCsrfToken(response.body);
     'valid init response': (r) => (r.body || '').includes('"v-uiId"') && (r.body || '').includes('"Vaadin-Security-Key"'),
   })) {
     fail(`Request 8 (GET http://localhost:8080/?v-r=init&location=crud-example&query=&v-sh=600&v-sw=80...): init failed (status ${response.status}): ${body.substring(0, 200)}`)
+
+// Think time: user reading the page
+sleep(2.0 + Math.random() * 3.0);
   }
 
   // Extract Vaadin session values from init response
@@ -338,25 +341,8 @@ const hillaCsrfToken = getHillaCsrfToken(response.body);
   let nodeMap = {}
   nodeMap = updateNodeMap(nodeMap, response.body)
 
-  // HAR_DELTA_MS: 25
-  // Request 9: GET http://edgedl.me.gvt1.com/edgedl/diffgen-puffin/ceofaddefefcbblgcgnibnonglccb...
-  response = http.get(
-    'http://edgedl.me.gvt1.com/edgedl/diffgen-puffin/ceofaddefefcbblgcgnibnonglccbfja/fbdd96f424c67bd94b857b415c88a5711d0711f4d7a62d733ee650e5afe87766',
-    {
-      headers: {
-      'Proxy-Connection': 'keep-alive',
-      'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/154.0.0.0 Safari/537.36'
-    },
-      tags: { name: 'edit-person: 9 GET /edgedl/diffgen-puffin/ceofaddefefcbblgcgnibnonglccbfja/...' }
-    }
-  )
-
-  if (!check(response, { 'status < 400': (r) => r.status < 400 }, { name: 'edit-person: 9 GET /edgedl/diffgen-puffin/ceofaddefefcbblgcgnibnonglccbfja/...' })) {
-    console.error(`edit-person: 9 GET /edgedl/diffgen-puffin/ceofaddefefcbblgcgnibnonglccbfja/...: HTTP ${response.status} ${response.url} - ${String(response.body).substring(0, 200)}`)
-  }
-
-  // HAR_DELTA_MS: 52
-  // Request 10: GET http://localhost:8080/VAADIN/build/FlowBootstrap-xhSPwkAC.js
+  // HAR_DELTA_MS: 264
+  // Request 9: GET http://localhost:8080/VAADIN/build/FlowBootstrap-xhSPwkAC.js
   response = http.get(
     `${BASE_URL}/VAADIN/build/FlowBootstrap-xhSPwkAC.js`,
     {
@@ -374,16 +360,16 @@ const hillaCsrfToken = getHillaCsrfToken(response.body);
       'Referer': `${BASE_URL}/crud-example`,
       'Accept-Language': 'en-GB,en-US;q=0.9,en;q=0.8'
     },
-      tags: { name: 'edit-person: 10 GET /VAADIN/build/FlowBootstrap-xhSPwkAC.js' }
+      tags: { name: 'edit-person: 9 GET /VAADIN/build/FlowBootstrap-xhSPwkAC.js' }
     }
   )
 
-  if (!check(response, { 'status < 400': (r) => r.status < 400 }, { name: 'edit-person: 10 GET /VAADIN/build/FlowBootstrap-xhSPwkAC.js' })) {
-    console.error(`edit-person: 10 GET /VAADIN/build/FlowBootstrap-xhSPwkAC.js: HTTP ${response.status} ${response.url} - ${String(response.body).substring(0, 200)}`)
+  if (!check(response, { 'status < 400': (r) => r.status < 400 }, { name: 'edit-person: 9 GET /VAADIN/build/FlowBootstrap-xhSPwkAC.js' })) {
+    console.error(`edit-person: 9 GET /VAADIN/build/FlowBootstrap-xhSPwkAC.js: HTTP ${response.status} ${response.url} - ${String(response.body).substring(0, 200)}`)
   }
 
-  // HAR_DELTA_MS: 5
-  // Request 11: GET http://localhost:8080/VAADIN/build/generated-flow-imports-BIIPXANG.js
+  // HAR_DELTA_MS: 10
+  // Request 10: GET http://localhost:8080/VAADIN/build/generated-flow-imports-BIIPXANG.js
   response = http.get(
     `${BASE_URL}/VAADIN/build/generated-flow-imports-BIIPXANG.js`,
     {
@@ -401,16 +387,16 @@ const hillaCsrfToken = getHillaCsrfToken(response.body);
       'Referer': `${BASE_URL}/crud-example`,
       'Accept-Language': 'en-GB,en-US;q=0.9,en;q=0.8'
     },
-      tags: { name: 'edit-person: 11 GET /VAADIN/build/generated-flow-imports-BIIPXANG.js' }
+      tags: { name: 'edit-person: 10 GET /VAADIN/build/generated-flow-imports-BIIPXANG.js' }
     }
   )
 
-  if (!check(response, { 'status < 400': (r) => r.status < 400 }, { name: 'edit-person: 11 GET /VAADIN/build/generated-flow-imports-BIIPXANG.js' })) {
-    console.error(`edit-person: 11 GET /VAADIN/build/generated-flow-imports-BIIPXANG.js: HTTP ${response.status} ${response.url} - ${String(response.body).substring(0, 200)}`)
+  if (!check(response, { 'status < 400': (r) => r.status < 400 }, { name: 'edit-person: 10 GET /VAADIN/build/generated-flow-imports-BIIPXANG.js' })) {
+    console.error(`edit-person: 10 GET /VAADIN/build/generated-flow-imports-BIIPXANG.js: HTTP ${response.status} ${response.url} - ${String(response.body).substring(0, 200)}`)
   }
 
-  // HAR_DELTA_MS: 13
-  // Request 12: GET http://localhost:8080/VAADIN/build/FlowClient-DVypvd1h.js
+  // HAR_DELTA_MS: 18
+  // Request 11: GET http://localhost:8080/VAADIN/build/FlowClient-DVypvd1h.js
   response = http.get(
     `${BASE_URL}/VAADIN/build/FlowClient-DVypvd1h.js`,
     {
@@ -428,16 +414,16 @@ const hillaCsrfToken = getHillaCsrfToken(response.body);
       'Referer': `${BASE_URL}/crud-example`,
       'Accept-Language': 'en-GB,en-US;q=0.9,en;q=0.8'
     },
-      tags: { name: 'edit-person: 12 GET /VAADIN/build/FlowClient-DVypvd1h.js' }
+      tags: { name: 'edit-person: 11 GET /VAADIN/build/FlowClient-DVypvd1h.js' }
     }
   )
 
-  if (!check(response, { 'status < 400': (r) => r.status < 400 }, { name: 'edit-person: 12 GET /VAADIN/build/FlowClient-DVypvd1h.js' })) {
-    console.error(`edit-person: 12 GET /VAADIN/build/FlowClient-DVypvd1h.js: HTTP ${response.status} ${response.url} - ${String(response.body).substring(0, 200)}`)
+  if (!check(response, { 'status < 400': (r) => r.status < 400 }, { name: 'edit-person: 11 GET /VAADIN/build/FlowClient-DVypvd1h.js' })) {
+    console.error(`edit-person: 11 GET /VAADIN/build/FlowClient-DVypvd1h.js: HTTP ${response.status} ${response.url} - ${String(response.body).substring(0, 200)}`)
   }
 
-  // HAR_DELTA_MS: 5
-  // Request 13: GET http://localhost:8080/VAADIN/build/ApplicationConnection-DodrPk-H.js
+  // HAR_DELTA_MS: 9
+  // Request 12: GET http://localhost:8080/VAADIN/build/ApplicationConnection-DodrPk-H.js
   response = http.get(
     `${BASE_URL}/VAADIN/build/ApplicationConnection-DodrPk-H.js`,
     {
@@ -455,16 +441,16 @@ const hillaCsrfToken = getHillaCsrfToken(response.body);
       'Referer': `${BASE_URL}/crud-example`,
       'Accept-Language': 'en-GB,en-US;q=0.9,en;q=0.8'
     },
-      tags: { name: 'edit-person: 13 GET /VAADIN/build/ApplicationConnection-DodrPk-H.js' }
+      tags: { name: 'edit-person: 12 GET /VAADIN/build/ApplicationConnection-DodrPk-H.js' }
     }
   )
 
-  if (!check(response, { 'status < 400': (r) => r.status < 400 }, { name: 'edit-person: 13 GET /VAADIN/build/ApplicationConnection-DodrPk-H.js' })) {
-    console.error(`edit-person: 13 GET /VAADIN/build/ApplicationConnection-DodrPk-H.js: HTTP ${response.status} ${response.url} - ${String(response.body).substring(0, 200)}`)
+  if (!check(response, { 'status < 400': (r) => r.status < 400 }, { name: 'edit-person: 12 GET /VAADIN/build/ApplicationConnection-DodrPk-H.js' })) {
+    console.error(`edit-person: 12 GET /VAADIN/build/ApplicationConnection-DodrPk-H.js: HTTP ${response.status} ${response.url} - ${String(response.body).substring(0, 200)}`)
   }
 
-  // HAR_DELTA_MS: 11
-  // Request 14: POST http://localhost:8080/?v-r=uidl&v-uiId=0
+  // HAR_DELTA_MS: 17
+  // Request 13: POST http://localhost:8080/?v-r=uidl&v-uiId=0
   /* unresolved node 1 */
   response = http.post(
     `${BASE_URL}/?v-r=uidl&v-uiId=${uiId}`,
@@ -485,12 +471,12 @@ const hillaCsrfToken = getHillaCsrfToken(response.body);
       'Referer': `${BASE_URL}/crud-example`,
       'Accept-Language': 'en-GB,en-US;q=0.9,en;q=0.8'
     },
-      tags: { name: 'edit-person: 14 POST uidl' }
+      tags: { name: 'edit-person: 13 POST uidl' }
     }
   )
 
-  if (!check(response, { 'status < 400': (r) => r.status < 400 }, { name: 'edit-person: 14 POST uidl' })) {
-    console.error(`edit-person: 14 POST uidl: HTTP ${response.status} ${response.url} - ${String(response.body).substring(0, 200)}`)
+  if (!check(response, { 'status < 400': (r) => r.status < 400 }, { name: 'edit-person: 13 POST uidl' })) {
+    console.error(`edit-person: 13 POST uidl: HTTP ${response.status} ${response.url} - ${String(response.body).substring(0, 200)}`)
   }
 
   // Abort iteration and trigger test abort if UIDL response is invalid
@@ -504,10 +490,7 @@ const hillaCsrfToken = getHillaCsrfToken(response.body);
     'security key valid': (r) => !(r.body || '').includes('Invalid security key'),
     'valid UIDL response': () => syncIdMatch !== null,
   })) {
-    fail(`Request 14 (POST http://localhost:8080/?v-r=uidl&v-uiId=0): UIDL failed (status ${response.status}): ${body.substring(0, 200)}`)
-
-// Think time: user reading the page
-sleep(2.0 + Math.random() * 3.0);
+    fail(`Request 13 (POST http://localhost:8080/?v-r=uidl&v-uiId=0): UIDL failed (status ${response.status}): ${body.substring(0, 200)}`)
   }
 
   // Update Vaadin sync counters from response (-1 means UNDEFINED_SYNC_ID, treat as 0)
@@ -520,7 +503,24 @@ sleep(2.0 + Math.random() * 3.0);
   if (found) gridKeys = found.map(s => s.split('"')[3])
   nodeMap = updateNodeMap(nodeMap, response.body)
 
-  // HAR_DELTA_MS: 287
+  // HAR_DELTA_MS: 84
+  // Request 14: GET http://edgedl.me.gvt1.com/edgedl/diffgen-puffin/ceofaddefefcbblgcgnibnonglccb...
+  response = http.get(
+    'http://edgedl.me.gvt1.com/edgedl/diffgen-puffin/ceofaddefefcbblgcgnibnonglccbfja/fbdd96f424c67bd94b857b415c88a5711d0711f4d7a62d733ee650e5afe87766',
+    {
+      headers: {
+      'Proxy-Connection': 'keep-alive',
+      'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/154.0.0.0 Safari/537.36'
+    },
+      tags: { name: 'edit-person: 14 GET /edgedl/diffgen-puffin/ceofaddefefcbblgcgnibnonglccbfja/...' }
+    }
+  )
+
+  if (!check(response, { 'status < 400': (r) => r.status < 400 }, { name: 'edit-person: 14 GET /edgedl/diffgen-puffin/ceofaddefefcbblgcgnibnonglccbfja/...' })) {
+    console.error(`edit-person: 14 GET /edgedl/diffgen-puffin/ceofaddefefcbblgcgnibnonglccbfja/...: HTTP ${response.status} ${response.url} - ${String(response.body).substring(0, 200)}`)
+  }
+
+  // HAR_DELTA_MS: 307
   // Request 15: GET http://localhost:8080/VAADIN/build/chunk-c9032f74a02a9eb2d9d0dc21b6f2c6b4c134...
   response = http.get(
     `${BASE_URL}/VAADIN/build/chunk-c9032f74a02a9eb2d9d0dc21b6f2c6b4c134b1cfc03eede290b534b2b8b21d87-BaTzdjoW.js`,
@@ -547,7 +547,7 @@ sleep(2.0 + Math.random() * 3.0);
     console.error(`edit-person: 15 GET /VAADIN/build/chunk-...-BaTzdjoW.js: HTTP ${response.status} ${response.url} - ${String(response.body).substring(0, 200)}`)
   }
 
-  // HAR_DELTA_MS: 58
+  // HAR_DELTA_MS: 50
   // Request 16: POST http://localhost:8080/?v-r=uidl&v-uiId=0
   response = http.post(
     `${BASE_URL}/?v-r=uidl&v-uiId=${uiId}`,
@@ -600,7 +600,7 @@ sleep(2.0 + Math.random() * 3.0);
   if (found) gridKeys = found.map(s => s.split('"')[3])
   nodeMap = updateNodeMap(nodeMap, response.body)
 
-  // HAR_DELTA_MS: 128
+  // HAR_DELTA_MS: 132
   // Request 17: POST http://localhost:8080/?v-r=uidl&v-uiId=0
   response = http.post(
     `${BASE_URL}/?v-r=uidl&v-uiId=${uiId}`,
@@ -656,7 +656,7 @@ sleep(0.5 + Math.random() * 1.5);
   if (found) gridKeys = found.map(s => s.split('"')[3])
   nodeMap = updateNodeMap(nodeMap, response.body)
 
-  // HAR_DELTA_MS: 85
+  // HAR_DELTA_MS: 81
   // Request 18: POST http://localhost:8080/?v-r=uidl&v-uiId=0
   response = http.post(
     `${BASE_URL}/?v-r=uidl&v-uiId=${uiId}`,
@@ -712,7 +712,7 @@ sleep(0.5 + Math.random() * 1.5);
   if (found) gridKeys = found.map(s => s.split('"')[3])
   nodeMap = updateNodeMap(nodeMap, response.body)
 
-  // HAR_DELTA_MS: 72
+  // HAR_DELTA_MS: 70
   // Request 19: POST http://localhost:8080/?v-r=uidl&v-uiId=0
   response = http.post(
     `${BASE_URL}/?v-r=uidl&v-uiId=${uiId}`,
@@ -768,7 +768,7 @@ sleep(0.5 + Math.random() * 1.5);
   if (found) gridKeys = found.map(s => s.split('"')[3])
   nodeMap = updateNodeMap(nodeMap, response.body)
 
-  // HAR_DELTA_MS: 72
+  // HAR_DELTA_MS: 77
   // Request 20: POST http://localhost:8080/?v-r=uidl&v-uiId=0
   response = http.post(
     `${BASE_URL}/?v-r=uidl&v-uiId=${uiId}`,
@@ -824,7 +824,7 @@ sleep(0.5 + Math.random() * 1.5);
   if (found) gridKeys = found.map(s => s.split('"')[3])
   nodeMap = updateNodeMap(nodeMap, response.body)
 
-  // HAR_DELTA_MS: 29
+  // HAR_DELTA_MS: 35
   // Request 21: POST http://localhost:8080/?v-r=uidl&v-uiId=0
   response = http.post(
     `${BASE_URL}/?v-r=uidl&v-uiId=${uiId}`,
@@ -877,7 +877,7 @@ sleep(0.5 + Math.random() * 1.5);
   if (found) gridKeys = found.map(s => s.split('"')[3])
   nodeMap = updateNodeMap(nodeMap, response.body)
 
-  // HAR_DELTA_MS: 62
+  // HAR_DELTA_MS: 77
   // Request 22: POST http://localhost:8080/?v-r=uidl&v-uiId=0
   response = http.post(
     `${BASE_URL}/?v-r=uidl&v-uiId=${uiId}`,
@@ -933,7 +933,7 @@ sleep(0.5 + Math.random() * 1.5);
   if (found) gridKeys = found.map(s => s.split('"')[3])
   nodeMap = updateNodeMap(nodeMap, response.body)
 
-  // HAR_DELTA_MS: 68
+  // HAR_DELTA_MS: 63
   // Request 23: POST http://localhost:8080/?v-r=uidl&v-uiId=0
   response = http.post(
     `${BASE_URL}/?v-r=uidl&v-uiId=${uiId}`,
@@ -989,7 +989,7 @@ sleep(0.5 + Math.random() * 1.5);
   if (found) gridKeys = found.map(s => s.split('"')[3])
   nodeMap = updateNodeMap(nodeMap, response.body)
 
-  // HAR_DELTA_MS: 30
+  // HAR_DELTA_MS: 34
   // Request 24: POST http://localhost:8080/?v-r=uidl&v-uiId=0
   response = http.post(
     `${BASE_URL}/?v-r=uidl&v-uiId=${uiId}`,
@@ -1042,7 +1042,7 @@ sleep(0.5 + Math.random() * 1.5);
   if (found) gridKeys = found.map(s => s.split('"')[3])
   nodeMap = updateNodeMap(nodeMap, response.body)
 
-  // HAR_DELTA_MS: 48
+  // HAR_DELTA_MS: 47
   // Request 25: POST http://localhost:8080/?v-r=uidl&v-uiId=0
   response = http.post(
     `${BASE_URL}/?v-r=uidl&v-uiId=${uiId}`,
@@ -1098,7 +1098,7 @@ sleep(0.5 + Math.random() * 1.5);
   if (found) gridKeys = found.map(s => s.split('"')[3])
   nodeMap = updateNodeMap(nodeMap, response.body)
 
-  // HAR_DELTA_MS: 83
+  // HAR_DELTA_MS: 91
   // Request 26: POST http://localhost:8080/?v-r=uidl&v-uiId=0
   response = http.post(
     `${BASE_URL}/?v-r=uidl&v-uiId=${uiId}`,
@@ -1151,11 +1151,11 @@ sleep(0.5 + Math.random() * 1.5);
   if (found) gridKeys = found.map(s => s.split('"')[3])
   nodeMap = updateNodeMap(nodeMap, response.body)
 
-  // HAR_DELTA_MS: 179
+  // HAR_DELTA_MS: 232
   // Request 27: POST http://localhost:8080/?v-r=uidl&v-uiId=0
   response = http.post(
     `${BASE_URL}/?v-r=uidl&v-uiId=${uiId}`,
-    `{"csrfToken":"${csrfToken}","rpc":[{"type":"mSync","node":${resolveNode(nodeMap, 'vaadin-text-field#6')},"feature":1,"property":"value","value":"${inputRow.input_8}"},{"type":"event","node":${resolveNode(nodeMap, 'vaadin-text-field#6')},"event":"change","data":{}}],"syncId":${syncId},"clientId":${clientId}}`,
+    `{"csrfToken":"${csrfToken}","rpc":[{"type":"mSync","node":${resolveNode(nodeMap, 'vaadin-text-field#1')},"feature":1,"property":"value","value":"${inputRow.input_8}"},{"type":"event","node":${resolveNode(nodeMap, 'vaadin-text-field#1')},"event":"change","data":{}}],"syncId":${syncId},"clientId":${clientId}}`,
     {
       headers: {
       'Proxy-Connection': 'keep-alive',
@@ -1207,7 +1207,7 @@ sleep(0.5 + Math.random() * 1.5);
   if (found) gridKeys = found.map(s => s.split('"')[3])
   nodeMap = updateNodeMap(nodeMap, response.body)
 
-  // HAR_DELTA_MS: 41
+  // HAR_DELTA_MS: 58
   // Request 28: POST http://localhost:8080/?v-r=uidl&v-uiId=0
   response = http.post(
     `${BASE_URL}/?v-r=uidl&v-uiId=${uiId}`,
@@ -1263,7 +1263,7 @@ sleep(0.5 + Math.random() * 1.5);
   if (found) gridKeys = found.map(s => s.split('"')[3])
   nodeMap = updateNodeMap(nodeMap, response.body)
 
-  // HAR_DELTA_MS: 38
+  // HAR_DELTA_MS: 55
   // Request 29: POST http://localhost:8080/?v-r=uidl&v-uiId=0
   response = http.post(
     `${BASE_URL}/?v-r=uidl&v-uiId=${uiId}`,
@@ -1316,7 +1316,7 @@ sleep(0.5 + Math.random() * 1.5);
   if (found) gridKeys = found.map(s => s.split('"')[3])
   nodeMap = updateNodeMap(nodeMap, response.body)
 
-  // HAR_DELTA_MS: 115
+  // HAR_DELTA_MS: 140
   // Request 30: POST http://localhost:8080/?v-r=uidl&v-uiId=0
   response = http.post(
     `${BASE_URL}/?v-r=uidl&v-uiId=${uiId}`,
@@ -1372,7 +1372,7 @@ sleep(0.5 + Math.random() * 1.5);
   if (found) gridKeys = found.map(s => s.split('"')[3])
   nodeMap = updateNodeMap(nodeMap, response.body)
 
-  // HAR_DELTA_MS: 19
+  // HAR_DELTA_MS: 20
   // Request 31: POST http://localhost:8080/?v-r=uidl&v-uiId=0
   response = http.post(
     `${BASE_URL}/?v-r=uidl&v-uiId=${uiId}`,
@@ -1425,7 +1425,7 @@ sleep(0.5 + Math.random() * 1.5);
   if (found) gridKeys = found.map(s => s.split('"')[3])
   nodeMap = updateNodeMap(nodeMap, response.body)
 
-  // HAR_DELTA_MS: 44
+  // HAR_DELTA_MS: 49
   // Request 32: POST http://localhost:8080/?v-r=uidl&v-uiId=0
   response = http.post(
     `${BASE_URL}/?v-r=uidl&v-uiId=${uiId}`,
@@ -1478,7 +1478,7 @@ sleep(0.5 + Math.random() * 1.5);
   if (found) gridKeys = found.map(s => s.split('"')[3])
   nodeMap = updateNodeMap(nodeMap, response.body)
 
-  // HAR_DELTA_MS: 53
+  // HAR_DELTA_MS: 52
   // Request 33: POST http://localhost:8080/?v-r=uidl&v-uiId=0
   response = http.post(
     `${BASE_URL}/?v-r=uidl&v-uiId=${uiId}`,

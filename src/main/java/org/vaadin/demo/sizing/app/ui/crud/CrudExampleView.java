@@ -1,15 +1,11 @@
 package org.vaadin.demo.sizing.app.ui.crud;
 
-import com.vaadin.flow.component.dependency.Uses;
-import com.vaadin.flow.component.icon.Icon;
-import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.splitlayout.SplitLayout;
 import com.vaadin.flow.router.*;
 import org.vaadin.demo.sizing.app.data.SamplePerson;
 import org.vaadin.demo.sizing.app.service.SamplePersonService;
-import org.vaadin.lineawesome.LineAwesomeIconUrl;
 
 import java.util.Optional;
 
