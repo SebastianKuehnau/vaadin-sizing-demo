@@ -19,7 +19,7 @@
 set -euo pipefail
 
 USERS="${USERS:-100}"
-WARMUP_USERS="${WARMUP_USERS:-$USERS}"
+WARMUP_USERS="${WARMUP_USERS:-20}"
 KEEP_DUMPS="${KEEP_DUMPS:-true}"
 APP_IP="${APP_IP:-localhost}"
 APP_PORT="${APP_PORT:-8080}"
@@ -43,12 +43,32 @@ metric() { # prints the value of an Actuator metric, e.g. metric jvm.memory.used
         | python3 -c 'import json, sys; print(int(json.load(sys.stdin)["measurements"][0]["value"]))'
 }
 
+check_app() { # fails if the app is not reachable or was restarted since the script started
+    local now
+    now="$(metric process.start.time 2>/dev/null)" || {
+        echo "The app is not reachable ($1). It may have crashed or be restarting, see:" >&2
+        echo "  docker compose logs app; docker events --since 30m --until 0s --filter container=sizing-app" >&2
+        exit 1
+    }
+    [[ "$now" == "$start_time" ]] || {
+        echo "The app was restarted ($1), the measurement is invalid. Most likely the container" >&2
+        echo "exceeded its memory limit and was killed (exit code 137), check with:" >&2
+        echo "  docker events --since 30m --until 0s --filter container=sizing-app --filter event=oom" >&2
+        echo "Give it more memory (APP_MEMORY=2g docker compose up -d) or use fewer USERS." >&2
+        exit 1
+    }
+}
+
 snapshot() { # heap dump (full GC), then live heap and sessions; sets heap_<name> and sessions_<name>
-    local file="$results/$1.hprof"
+    local file="$results/$1.hprof" heap sessions
     [[ "$KEEP_DUMPS" == true ]] || file=/dev/null
-    curl -sf -o "$file" "$actuator/heapdump?live=true"
-    printf -v "heap_$1" '%s' "$(metric jvm.memory.used area:heap)"
-    printf -v "sessions_$1" '%s' "$(metric tomcat.sessions.active.current)"
+    check_app "before heap dump '$1'"
+    curl -sf -o "$file" "$actuator/heapdump?live=true" \
+        || { check_app "heap dump '$1' failed"; echo "Heap dump '$1' failed" >&2; exit 1; }
+    heap="$(metric jvm.memory.used area:heap)" && sessions="$(metric tomcat.sessions.active.current)" \
+        || { check_app "reading metrics after heap dump '$1'"; echo "Reading the metrics failed" >&2; exit 1; }
+    printf -v "heap_$1" '%s' "$heap"
+    printf -v "sessions_$1" '%s' "$sessions"
 }
 
 k6run() { # k6run <name> <users> [extra arguments]: every user runs the scenario once
@@ -60,8 +80,10 @@ k6run() { # k6run <name> <users> [extra arguments]: every user runs the scenario
         -Dk6.appIp="$APP_IP" -Dk6.appPort="$APP_PORT" "$@" > "$results/$name.log" 2>&1 \
         || { echo "k6 run '$name' failed, see $results/$name.log" >&2; exit 1; }
     [[ -d "$recordings/report" ]] && mv "$recordings/report" "$results/$name-report"
-    return 0
+    check_app "during k6 run '$name', see $results/$name.log"
 }
+
+start_time="$(metric process.start.time)" # to detect restarts, see check_app
 
 echo "Warmup: $WARMUP_USERS users"
 k6run warmup "$WARMUP_USERS" -Dk6.failOnThreshold=false -Dk6.managementPort=-1
