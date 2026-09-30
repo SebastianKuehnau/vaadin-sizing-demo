@@ -4,6 +4,7 @@ import com.vaadin.flow.component.button.testbench.ButtonElement;
 import com.vaadin.flow.component.checkbox.testbench.CheckboxElement;
 import com.vaadin.flow.component.confirmdialog.testbench.ConfirmDialogElement;
 import com.vaadin.flow.component.datepicker.testbench.DatePickerElement;
+import com.vaadin.flow.component.grid.testbench.GridElement;
 import com.vaadin.flow.component.notification.testbench.NotificationElement;
 import com.vaadin.flow.component.textfield.testbench.TextFieldElement;
 import com.vaadin.testbench.BrowserTest;
@@ -20,7 +21,7 @@ import java.util.function.Function;
 
 /**
  * End-to-end scenario of one user in one browser tab: opens the CRUD view,
- * creates a new person, changes a random property of it and deletes it again.
+ * scrolls to the middle of the grid, creates a new person, changes a random property of it and deletes it again.
  * <p>
  * The scenario only works on the person it created itself and does not click
  * on grid rows, so it can be replayed by many virtual users in parallel. * <p>
@@ -67,9 +68,24 @@ public class EditPersonScenario extends AbstractIT {
     public void createEditAndDeletePerson() {
         System.out.println(getClass().getSimpleName() + " random seed: " + seed);
 
+        scrollToMiddleOfGrid();
         createPerson();
         editRandomProperty();
         deletePerson();
+    }
+
+    private void scrollToMiddleOfGrid() {
+        GridElement grid = $(GridElement.class).waitForFirst();
+        int middleRow = grid.getRowCount() / 2;
+        System.out.println("Scrolling grid to row " + middleRow);
+
+        grid.scrollToRow(middleRow);
+
+        waitUntilTrue(() -> !grid.getCell(middleRow, 0).getText().isEmpty(),
+                "Row " + middleRow + " should be loaded after scrolling");
+        Assertions.assertTrue(grid.getFirstVisibleRowIndex() <= middleRow
+                        && middleRow <= grid.getLastVisibleRowIndex(),
+                "Row " + middleRow + " should be visible after scrolling");
     }
 
     private void createPerson() {
