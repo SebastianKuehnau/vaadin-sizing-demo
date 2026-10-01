@@ -9,6 +9,9 @@
 #   4. heap dump "after"
 #
 # Memory per session = (live heap after - live heap before) / (sessions after - sessions before)
+# CPU per run         = JVM CPU time used during step 3 / (sessions after - sessions before)
+#
+# The CPU per run is the basis for the number of cores, see loadtest/measure-cpu-capacity.sh.
 #
 #   loadtest/measure-session-size.sh                 # 100 users
 #   USERS=200 loadtest/measure-session-size.sh lazy  # the label is added to the result directory
@@ -92,14 +95,16 @@ echo "Heap dump before"
 snapshot before
 
 echo "Load: $USERS users"
+cpu_before="$(metric process.cpu.time)" # ns; read outside the heap dumps, whose full GC costs CPU
 k6run load "$USERS" -Dk6.managementPort="$MANAGEMENT_PORT"
+cpu_after="$(metric process.cpu.time)"
 
 echo "Heap dump after"
 snapshot after
 
-python3 - "$heap_before" "$sessions_before" "$heap_after" "$sessions_after" <<'EOF' | tee "$results/summary.txt"
+python3 - "$heap_before" "$sessions_before" "$heap_after" "$sessions_after" "$cpu_before" "$cpu_after" <<'EOF' | tee "$results/summary.txt"
 import sys
-heap_before, sessions_before, heap_after, sessions_after = map(int, sys.argv[1:])
+heap_before, sessions_before, heap_after, sessions_after, cpu_before, cpu_after = map(int, sys.argv[1:])
 mb = lambda b: b / 1024 / 1024
 new_sessions = sessions_after - sessions_before
 print(f"                 live heap   sessions")
@@ -110,5 +115,6 @@ if new_sessions <= 0:
 per_session = (heap_after - heap_before) / new_sessions
 print(f"\nmemory per session:        {per_session / 1024:7.0f} KB  ({new_sessions} new sessions)")
 print(f"live heap without sessions: {mb(heap_before - sessions_before * per_session):6.1f} MB")
+print(f"CPU per run:               {(cpu_after - cpu_before) / new_sessions / 1e6:7.1f} ms  (JVM CPU time, incl. GC)")
 EOF
 echo "Results: $results"

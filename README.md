@@ -43,7 +43,7 @@ results apart, e.g. `loadtest/measure-session-size.sh in-memory`.
 
 ### The scenario
 
-`EditPersonScenario` is one user in one browser tab: open the view, create a person, change a
+`EditPersonScenario` is one user in one browser tab: open the view, scroll to the middle of the grid, create a person, change a
 random field, save, delete the person. `loadtest:record` (`testbench-converter-plugin`) runs it
 once in Chrome through a recording proxy and turns the traffic into the k6 script `src/test/k6/recordings/edit-person.js`. k6 replays it with any number of virtual users;
 every virtual user leaves exactly **one session with one UI** behind.
@@ -138,9 +138,59 @@ kernel kills the container (exit code 137), e.g. at 512 MB and 75 %:
 APP_MEMORY=512m APP_MAX_RAM_PERCENTAGE=75 docker compose up -d
 ```
 
-**CPU** is a separate question: the HTML report of the k6 run (`load-report/` in the result
-directory) shows the CPU usage of the app during the test. An earlier version of the scenario
-needed about 55 ms of CPU per run.
+## 3. Measure the CPU
+
+The memory measurement only gives the **CPU per run**: the JVM CPU time (`process.cpu.time`, incl.
+GC) during the load phase divided by the number of runs, in `summary.txt`. How many runs per
+minute the app handles before it slows down is a separate test:
+
+```bash
+loadtest/measure-cpu-capacity.sh                                  # 2 cores
+APP_CPUS=1 RATES="30 60 90 120" loadtest/measure-cpu-capacity.sh 1-core
+```
+
+It restarts the container with `APP_CPUS` cores and a session timeout of 2 minutes (otherwise
+the sessions of the finished runs fill the heap) and runs one k6 step per rate in `RATES`. In
+every step, k6 starts the scenario at a fixed rate (runs per minute, `constant-arrival-rate`),
+no matter how fast the app answers, like real users. The test stops after the first step in which
+the app is saturated: p95 above `P95_LIMIT` (500 ms), more than 1 % failed requests or checks,
+or runs that k6 could not start because all virtual users were busy.
+
+Result (`results/<timestamp>-cpu/summary.txt`):
+
+```
+runs/min  completed  dropped  failed    p95 ms  CPU/run ms  cores used  utilization
+      30         16        0   0.0%        26       384.8        0.19           2%
+     240        120        0   0.0%        13       175.2        0.70           6%
+    2000       1000        0   0.0%         5        51.8        1.73          14%
+```
+
+(A short test run with 30 s steps on 12 cores, not a reference measurement.)
+
+**cores used** = CPU per run × runs per second. At low rates, the CPU per run is too high: the
+JIT compiler, the GC and the metrics polling need CPU even without users, and it is spread over
+few runs. The value at high rates is the one that counts per user.
+
+**Project the cores:**
+
+```
+cores = CPU per run × runs per second at peak / target utilization (0.5–0.7)
+```
+
+Example: 20 runs per second × 0.05 s = 1 core, at 60 % utilization → 2 cores. The runs per
+second come from production: user actions per minute × concurrently active users. The scenario
+must match what users do; the more typical it is, the better the projection.
+
+Things to know:
+
+- **The saturation point confirms the formula.** If the app slows down well below 100 %
+  utilization, something else limits it (locks, database connections, GC).
+- **The GC depends on the cores.** With fewer than 2 CPUs or less than ~1.8 GB of memory, the JVM
+  picks the serial GC, otherwise G1. Measure with the limits of production.
+- **The H2 database runs in the app** and its CPU counts as app CPU. With a separate database in
+  production, the app needs less CPU.
+- **k6 needs CPU, too.** On the same machine, k6 competes with the app at high rates; run it on
+  another machine or make sure the machine has more cores than `APP_CPUS`.
 
 ## Project structure
 
@@ -154,7 +204,7 @@ src/main/java/org/vaadin/demo/sizing
 src/test/java/.../it/       # TestBench browser tests
 src/test/java/.../load/     # EditPersonScenario, the basis of the load test
 src/test/k6/recordings/     # recorded k6 script and its test data
-loadtest/                   # rebuild.sh, measure-session-size.sh
+loadtest/                   # rebuild.sh, measure-session-size.sh, measure-cpu-capacity.sh
 Dockerfile, compose.yaml    # the app in a container with memory and CPU limits
 ```
 
