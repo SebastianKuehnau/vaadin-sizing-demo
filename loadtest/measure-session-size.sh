@@ -1,15 +1,20 @@
 #!/usr/bin/env bash
 # Measures the memory of one user session in the running container (see README.md):
 #
-#   1. warmup: a few users run the scenario once, so one-time costs (class loading, caches) are
-#      not counted as session memory
-#   2. heap dump "before"; the dump forces a full GC, so the heap then holds only live objects
+#   1. warmup: WARMUP_USERS (default: USERS) run the scenario once, so one-time costs (class loading,
+#      caches) are not counted as session memory; then all sessions are invalidated (DELETE
+#      /actuator/sessions)
+#   2. heap dump "before" (baseline, no sessions); the dump forces a full GC, so the heap then holds
+#      only live objects
 #   3. USERS virtual users run the scenario once each; every user leaves one session with one UI
 #      (one browser tab) behind, which stays in memory until the session timeout (30 minutes)
 #   4. heap dump "after"
+#   5. unless CHECK_BASELINE=false: all sessions are invalidated again and heap dump "cleared";
+#      it should be about the baseline, otherwise the load built up one-time costs (caches) that
+#      the warmup did not and that are counted as session memory
 #
-# Memory per session = (live heap after - live heap before) / (sessions after - sessions before)
-# CPU per run         = JVM CPU time used during step 3 / (sessions after - sessions before)
+# Memory per session = (live heap after - live heap before) / sessions after
+# CPU per run         = JVM CPU time used during step 3 / sessions after
 #
 # During step 3, without forcing GCs, the memory under load is recorded: the heap after every GC
 # (GC log of the JVM, -Xlog:gc in compose.yaml) and the memory of the container (docker stats,
@@ -23,6 +28,7 @@
 #   loadtest/measure-session-size.sh                 # 100 users
 #   USERS=200 loadtest/measure-session-size.sh lazy  # the label is added to the result directory
 #   KEEP_DUMPS=false loadtest/measure-session-size.sh
+#   CHECK_BASELINE=false loadtest/measure-session-size.sh  # without step 5
 #
 # The results are written to results/<timestamp>[-label]/: summary.txt, the heap dumps
 # before.hprof and after.hprof (open them in VisualVM or Eclipse MAT), the k6 logs and the memory
@@ -30,8 +36,9 @@
 set -euo pipefail
 
 USERS="${USERS:-100}"
-WARMUP_USERS="${WARMUP_USERS:-20}"
+WARMUP_USERS="${WARMUP_USERS:-$USERS}"
 KEEP_DUMPS="${KEEP_DUMPS:-true}"
+CHECK_BASELINE="${CHECK_BASELINE:-true}"
 APP_IP="${APP_IP:-localhost}"
 APP_PORT="${APP_PORT:-8080}"
 MANAGEMENT_PORT="${MANAGEMENT_PORT:-8081}"
@@ -105,6 +112,14 @@ k6run() { # k6run <name> <users> [extra arguments]: every user runs the scenario
     check_app "during k6 run '$name', see $results/$name.log"
 }
 
+invalidate_sessions() { # ends all HTTP sessions and with them the Vaadin sessions and UIs
+    curl -sf -X DELETE "$actuator/sessions" >/dev/null || {
+        check_app "invalidating the sessions"
+        echo "Invalidating the sessions failed. The endpoint is new, rebuild the image: loadtest/rebuild.sh" >&2
+        exit 1
+    }
+}
+
 sample_container() { # prints "<epoch seconds> <docker MemUsage>" until killed, about every 2 s
     while :; do
         printf '%s %s\n' "$(date +%s)" \
@@ -117,7 +132,8 @@ start_time="$(metric process.start.time)" # to detect restarts, see check_app
 echo "Warmup: $WARMUP_USERS users"
 k6run warmup "$WARMUP_USERS" -Dk6.failOnThreshold=false -Dk6.managementPort=-1
 
-echo "Heap dump before"
+echo "Invalidating the warmup sessions, heap dump before"
+invalidate_sessions
 snapshot before
 
 echo "Load: $USERS users"
@@ -143,15 +159,22 @@ docker logs --since "$load_start" --until "$((load_end + 1))" "$CONTAINER" 2>&1 
 echo "Heap dump after"
 snapshot after
 
+heap_cleared=-1 sessions_cleared=-1
+if [[ "$CHECK_BASELINE" == true ]]; then
+    echo "Invalidating the sessions, heap dump cleared"
+    invalidate_sessions
+    snapshot cleared
+fi
+
 python3 - "$results" "$USERS" "$heap_before" "$sessions_before" "$heap_after" "$sessions_after" \
     "$cpu_before" "$cpu_after" "$allocated_before" "$allocated_after" "$load_start" "$load_end" \
-    "$heap_committed" "$nonheap" "$container_limit" "$uptime_start" "$uptime_end" \
+    "$heap_committed" "$nonheap" "$container_limit" "$heap_cleared" "$sessions_cleared" "$uptime_start" "$uptime_end" \
     <<'EOF' | tee "$results/summary.txt"
 import re, sys
 results = sys.argv[1]
 (users, heap_before, sessions_before, heap_after, sessions_after, cpu_before, cpu_after,
  allocated_before, allocated_after, load_start, load_end, heap_committed, nonheap,
- container_limit) = map(int, sys.argv[2:-2])
+ container_limit, heap_cleared, sessions_cleared) = map(int, sys.argv[2:-2])
 uptime_start, uptime_end = map(float, sys.argv[-2:])
 mb = lambda b: b / 1024 / 1024
 units = {"B": 1, "K": 1024, "KIB": 1024, "KB": 1000, "M": 1024**2, "MIB": 1024**2, "MB": 1000**2,
@@ -162,11 +185,18 @@ new_sessions = sessions_after - sessions_before
 print(f"                 live heap   sessions")
 print(f"before        {mb(heap_before):9.1f} MB {sessions_before:10d}")
 print(f"after         {mb(heap_after):9.1f} MB {sessions_after:10d}")
+if heap_cleared >= 0:
+    print(f"cleared       {mb(heap_cleared):9.1f} MB {sessions_cleared:10d}")
+if sessions_before or sessions_cleared > 0:
+    print("Warning: sessions left after invalidating them, the baseline is not without sessions")
 if new_sessions <= 0:
     sys.exit("No new sessions, check the k6 log")
 per_session = (heap_after - heap_before) / new_sessions
 print(f"\nmemory per session:        {per_session / 1024:7.0f} KB  ({new_sessions} new sessions)")
-print(f"live heap without sessions: {mb(heap_before - sessions_before * per_session):6.1f} MB")
+print(f"live heap without sessions: {mb(heap_before):6.1f} MB  (baseline)")
+if heap_cleared >= 0:
+    growth = heap_cleared - heap_before
+    print(f"baseline growth by load:   {mb(growth):7.1f} MB  (cleared - before; {growth / new_sessions / 1024:.0f} KB of the memory per session)")
 print(f"CPU per run:               {(cpu_after - cpu_before) / new_sessions / 1e6:7.1f} ms  (JVM CPU time, incl. GC)")
 
 # GC log, e.g. "[12.3s][info][gc] GC(7) Pause Young (Allocation Failure) 210M->65M(742M) 4.1ms"

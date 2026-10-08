@@ -50,32 +50,45 @@ every virtual user leaves exactly **one session with one UI** behind.
 
 ### How the measurement works
 
-`measure-session-size.sh` (options: `USERS`, `WARMUP_USERS`, `KEEP_DUMPS`):
+`measure-session-size.sh` (options: `USERS`, `WARMUP_USERS`, `KEEP_DUMPS`, `CHECK_BASELINE`):
 
-1. **Warmup:** the same number of users run the scenario once. The first requests load classes and
+1. **Warmup:** `WARMUP_USERS` users (default: `USERS`) run the scenario once. The first requests load classes and
    fill caches, and Tomcat creates buffers for every concurrent connection. None of this is
-   session memory, so it must be in the heap before the first measurement.
-2. **Heap dump before** (`/actuator/heapdump`). The dump forces a full GC, so afterwards the heap
-   only holds live objects.
+   session memory, so it must be in the heap before the first measurement. Then all sessions are
+   invalidated (`DELETE /actuator/sessions`, which ends the Vaadin sessions and UIs, too; only in
+   builds with the `loadtest` profile).
+2. **Heap dump before** (`/actuator/heapdump`): the baseline without sessions. The dump forces a
+   full GC, so afterwards the heap only holds live objects.
 3. **Load:** `USERS` virtual users run the scenario once each.
 4. **Heap dump after.**
+5. **Baseline check** (off with `CHECK_BASELINE=false`): invalidate all sessions again, heap dump
+   `cleared`. It should be about the baseline; if it is higher, the load built up one-time costs
+   that the warmup did not, and they are counted as session memory.
 
 ```
-memory per session = (live heap after − live heap before) / (sessions after − sessions before)
+memory per session = (live heap after − live heap before) / sessions after
 ```
 
-Result (100 users, `results/<timestamp>/summary.txt`):
+Result (100 users, `results/<timestamp>/summary.txt`), on a freshly started container:
 
 ```
                  live heap   sessions
-before            107.5 MB        300
-after             126.3 MB        400
+before             53.4 MB          0
+after              76.4 MB        100
+cleared            52.7 MB          0
 
-memory per session:            193 KB  (100 new sessions)
-live heap without sessions:   50.9 MB
+memory per session:            235 KB  (100 new sessions)
+live heap without sessions:   53.4 MB  (baseline)
+baseline growth by load:      -0.7 MB  (cleared - before; -7 KB of the memory per session)
 ```
 
-Three runs in a row gave 182, 193 and 191 KB.
+Six runs, each on a freshly started container, gave 233, 234, 234, 235, 238 and 239 KB per
+session; the baseline growth stayed between −0.9 and −0.2 MB.
+
+The warmup must be as large as the load: with only 20 warmup users, the baseline grew by 7.6 MB
+during the load, and the memory per session came out at 322 KB instead of about 240 KB (a second
+run on the then warm app gave 248 KB). If the baseline growth in `summary.txt` is more than a few
+KB per session, raise `WARMUP_USERS`.
 
 The heap dumps `before.hprof` and `after.hprof` stay in the result directory. In VisualVM or
 Eclipse MAT, the **retained size of one `com.vaadin.flow.component.UI`** is the component tree and
@@ -106,19 +119,20 @@ extra heap per active user = (peak heap after GC − live heap after) / USERS
 In `summary.txt`, below the session size:
 
 ```
-under load (100 users at the same time, 40 s)
-peak heap after GC:          142.0 MB  (upper bound of the live heap under load)
-extra heap per active user:    161 KB  ((peak heap after GC - live heap after) / users)
-GCs:                             4     (1 full, 94 ms pauses in total, max 80 ms)
-allocated per run:            38.1 MB  (95 MB/s)
-heap committed:              742.0 MB
-non-heap used:               175.0 MB  (metaspace, code cache)
-peak container memory:       640.1 MB of 1024 MB limit
+under load (100 users at the same time, 21 s)
+peak heap after GC:          100.0 MB  (upper bound of the live heap under load)
+extra heap per active user:    237 KB  ((peak heap after GC - live heap after) / users)
+GCs:                            25     (0 full, 252 ms pauses in total, max 18 ms)
+allocated per run:            16.0 MB  (76 MB/s)
+heap committed:              232.4 MB
+non-heap used:               165.8 MB  (metaspace, code cache)
+peak container memory:       521.8 MB of 1024 MB limit
 ```
 
-(Example output of the evaluation, not yet a reference measurement.) All `USERS` start at the same
-time, so they are all active during the run; the values depend on the pace of the scenario (think
-times in the k6 script).
+In six runs, the extra heap per active user was 180–260 KB and the peak container memory
+518–533 MB. No full GC ran during the load, so the extra heap is an upper bound. All `USERS` start
+at the same time, so they are all active during the run; the values depend on the pace of the
+scenario (think times in the k6 script).
 
 ### Things to know
 
@@ -151,10 +165,10 @@ max heap        ≥ (live heap without sessions
 
 | Part | Value (measured here) | Note |
 |---|---|---|
-| non-heap (metaspace, code cache) | ~175 MB | `summary.txt` (non-heap used); grows with the amount of code, not with users |
+| non-heap (metaspace, code cache) | ~160 MB | `summary.txt` (non-heap used); grows with the amount of code, not with users |
 | native (threads, GC, buffers) | ~100 MB | |
 | live heap without sessions | ~50 MB | `summary.txt` |
-| memory per session | ~190 KB | `summary.txt` |
+| memory per session | ~240 KB | `summary.txt` |
 | extra heap per active user | | `summary.txt` (under load) |
 | factor 2 | | headroom, so the GC does not run constantly |
 
@@ -168,8 +182,8 @@ extra heap per active user:
 ```
 sessions     = 20 × (15 + 30)                            =   900
 active users = 20 × 15                                   =   300
-max heap     = (50 MB + 900 × 0.19 MB + 300 × 0.3 MB) × 2 ≈   620 MB
-container    = 175 MB + 100 MB + 620 MB                  ≈   895 MB  → 1 GB, heap limited to ~650 MB
+max heap     = (50 MB + 900 × 0.24 MB + 300 × 0.3 MB) × 2 ≈   710 MB
+container    = 160 MB + 100 MB + 710 MB                  ≈   970 MB  → 1.5 GB, heap limited to ~750 MB
 ```
 
 ### Check the projection under load
@@ -178,8 +192,8 @@ The projection is a model; a load test with the projected container confirms it.
 container with the projected limits and run as many users as will be active at the same time:
 
 ```bash
-APP_MEMORY=1g APP_MAX_RAM_PERCENTAGE=65 docker compose up -d
-USERS=300 loadtest/measure-session-size.sh check-1g
+APP_MEMORY=1536m APP_MAX_RAM_PERCENTAGE=50 docker compose up -d
+USERS=300 loadtest/measure-session-size.sh check-1.5g
 ```
 
 The projection holds if, in `summary.txt` (under load):
