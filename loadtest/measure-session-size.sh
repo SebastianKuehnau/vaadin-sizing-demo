@@ -88,8 +88,21 @@ check_app() { # fails if the app is not reachable or was restarted since the scr
     }
 }
 
-snapshot() { # heap dump (full GC), then live heap and sessions; sets heap_<name> and sessions_<name>
-    local file="$results/$1.hprof" heap sessions
+ui_count() { # prints the number of UIs, from the gauges of testbench-loadtest-support
+    # vaadin.view.count without tag sums the UI gauge and the per-view gauges (tag view), which
+    # count navigations rather than views, so the per-view values are subtracted
+    python3 - "$actuator/metrics/vaadin.view.count" <<'EOF'
+import json, sys, urllib.parse, urllib.request
+get = lambda url: json.load(urllib.request.urlopen(url))
+total = get(sys.argv[1])
+views = next((t["values"] for t in total["availableTags"] if t["tag"] == "view"), [])
+value = lambda metric: metric["measurements"][0]["value"]
+print(int(value(total) - sum(value(get(f"{sys.argv[1]}?tag=view:{urllib.parse.quote(v)}")) for v in views)))
+EOF
+}
+
+snapshot() { # heap dump (full GC), then live heap, sessions and UIs; sets heap_, sessions_, uis_<name>
+    local file="$results/$1.hprof" heap sessions uis
     [[ "$KEEP_DUMPS" == true ]] || file=/dev/null
     check_app "before heap dump '$1'"
     curl -sf -o "$file" "$actuator/heapdump?live=true" \
@@ -98,6 +111,8 @@ snapshot() { # heap dump (full GC), then live heap and sessions; sets heap_<name
         || { check_app "reading metrics after heap dump '$1'"; echo "Reading the metrics failed" >&2; exit 1; }
     printf -v "heap_$1" '%s' "$heap"
     printf -v "sessions_$1" '%s' "$sessions"
+    uis="$(ui_count 2>/dev/null)" || uis=-1
+    printf -v "uis_$1" '%s' "$uis"
 }
 
 k6run() { # k6run <name> <users> [extra arguments]: every user runs the scenario once
@@ -159,7 +174,7 @@ docker logs --since "$load_start" --until "$((load_end + 1))" "$CONTAINER" 2>&1 
 echo "Heap dump after"
 snapshot after
 
-heap_cleared=-1 sessions_cleared=-1
+heap_cleared=-1 sessions_cleared=-1 uis_cleared=-1
 if [[ "$CHECK_BASELINE" == true ]]; then
     echo "Invalidating the sessions, heap dump cleared"
     invalidate_sessions
@@ -169,26 +184,33 @@ fi
 python3 - "$results" "$USERS" "$heap_before" "$sessions_before" "$heap_after" "$sessions_after" \
     "$cpu_before" "$cpu_after" "$allocated_before" "$allocated_after" "$load_start" "$load_end" \
     "$heap_committed" "$nonheap" "$container_limit" "$heap_cleared" "$sessions_cleared" "$uptime_start" "$uptime_end" \
+    "$uis_before" "$uis_after" "$uis_cleared" \
     <<'EOF' | tee "$results/summary.txt"
 import re, sys
 results = sys.argv[1]
 (users, heap_before, sessions_before, heap_after, sessions_after, cpu_before, cpu_after,
  allocated_before, allocated_after, load_start, load_end, heap_committed, nonheap,
- container_limit, heap_cleared, sessions_cleared) = map(int, sys.argv[2:-2])
-uptime_start, uptime_end = map(float, sys.argv[-2:])
+ container_limit, heap_cleared, sessions_cleared) = map(int, sys.argv[2:-5])
+uptime_start, uptime_end = map(float, sys.argv[-5:-3])
+uis_before, uis_after, uis_cleared = map(int, sys.argv[-3:])
 mb = lambda b: b / 1024 / 1024
 units = {"B": 1, "K": 1024, "KIB": 1024, "KB": 1000, "M": 1024**2, "MIB": 1024**2, "MB": 1000**2,
          "G": 1024**3, "GIB": 1024**3, "GB": 1000**3}
 size = lambda value, unit: float(value) * units[unit.upper()]
 
 new_sessions = sessions_after - sessions_before
-print(f"                 live heap   sessions")
-print(f"before        {mb(heap_before):9.1f} MB {sessions_before:10d}")
-print(f"after         {mb(heap_after):9.1f} MB {sessions_after:10d}")
+print(f"                 live heap   sessions        UIs")
+print(f"before        {mb(heap_before):9.1f} MB {sessions_before:10d} {uis_before:10d}")
+print(f"after         {mb(heap_after):9.1f} MB {sessions_after:10d} {uis_after:10d}")
 if heap_cleared >= 0:
-    print(f"cleared       {mb(heap_cleared):9.1f} MB {sessions_cleared:10d}")
+    print(f"cleared       {mb(heap_cleared):9.1f} MB {sessions_cleared:10d} {uis_cleared:10d}")
 if sessions_before or sessions_cleared > 0:
     print("Warning: sessions left after invalidating them, the baseline is not without sessions")
+if uis_before > 0 or uis_cleared > 0:
+    print("Warning: UIs left after invalidating the sessions, they are counted in the baseline")
+if uis_after - max(uis_before, 0) != sessions_after - sessions_before:
+    print("Warning: not one UI per new session (-1: UI count not available), the memory per session"
+          " is not the memory of one user with one browser tab")
 if new_sessions <= 0:
     sys.exit("No new sessions, check the k6 log")
 per_session = (heap_after - heap_before) / new_sessions

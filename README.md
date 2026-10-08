@@ -65,6 +65,11 @@ every virtual user leaves exactly **one session with one UI** behind.
    `cleared`. It should be about the baseline; if it is higher, the load built up one-time costs
    that the warmup did not, and they are counted as session memory.
 
+Besides the sessions, `summary.txt` shows the UIs (from the gauges of `testbench-loadtest-support`)
+and warns unless every new session has exactly one UI and no UIs are left after invalidating.
+The per-view gauge (`vaadin.view.count` with tag `view`) counts navigations, not views (3 per UI
+in this scenario), so the script subtracts it from the total.
+
 ```
 memory per session = (live heap after − live heap before) / sessions after
 ```
