@@ -84,6 +84,42 @@ and Vaadin session, a few KB) and some noise. The retained size of `VaadinSessio
 is useless here (2 KB): `testbench-loadtest-support` references every UI from a global object, so
 the UIs are no longer "owned" by their session.
 
+### Memory under load
+
+The session size is what stays in memory between the requests; it does not grow with the load.
+While users are active, the app needs more: objects of running requests and sessions in the middle
+of the scenario. `jvm.memory.used` does not show this, as it is mostly garbage and depends on
+when the last GC ran. During step 3, without forcing GCs, the script therefore records:
+
+- **the heap after every GC** from the GC log of the JVM (`-Xlog:gc` in `compose.yaml`), in
+  `gc.csv`. Its peak is the live heap under load, as an upper bound: after a young GC, the old
+  generation may still hold dead objects.
+- **the container memory** (`docker stats`, about every 2 s), in `container.csv`. This is what the
+  memory limit (and the kernel's OOM kill) applies to.
+- **the allocation rate** (`jvm.gc.memory.allocated`): how fast garbage is produced, i.e. how often
+  the GC has to run.
+
+```
+extra heap per active user = (peak heap after GC − live heap after) / USERS
+```
+
+In `summary.txt`, below the session size:
+
+```
+under load (100 users at the same time, 40 s)
+peak heap after GC:          142.0 MB  (upper bound of the live heap under load)
+extra heap per active user:    161 KB  ((peak heap after GC - live heap after) / users)
+GCs:                             4     (1 full, 94 ms pauses in total, max 80 ms)
+allocated per run:            38.1 MB  (95 MB/s)
+heap committed:              742.0 MB
+non-heap used:               175.0 MB  (metaspace, code cache)
+peak container memory:       640.1 MB of 1024 MB limit
+```
+
+(Example output of the evaluation, not yet a reference measurement.) All `USERS` start at the same
+time, so they are all active during the run; the values depend on the pace of the scenario (think
+times in the k6 script).
+
 ### Things to know
 
 - **The sessions stay in memory.** The session timeout is Spring Boot's default of 30 minutes, so
@@ -108,27 +144,53 @@ the UIs are no longer "owned" by their session.
 
 ```
 container memory = non-heap + native + max heap
-max heap        ≥ (live heap without sessions + concurrent sessions × memory per session) × 2
+max heap        ≥ (live heap without sessions
+                   + concurrent sessions × memory per session
+                   + active users × extra heap per active user) × 2
 ```
 
 | Part | Value (measured here) | Note |
 |---|---|---|
-| non-heap (metaspace, code cache) | ~175 MB | grows with the amount of code, not with users |
+| non-heap (metaspace, code cache) | ~175 MB | `summary.txt` (non-heap used); grows with the amount of code, not with users |
 | native (threads, GC, buffers) | ~100 MB | |
 | live heap without sessions | ~50 MB | `summary.txt` |
 | memory per session | ~190 KB | `summary.txt` |
+| extra heap per active user | | `summary.txt` (under load) |
 | factor 2 | | headroom, so the GC does not run constantly |
 
 **Concurrent sessions** (Little's law): new sessions per minute × (minutes in the app + session
-timeout). A session lives on for the whole timeout after the user left.
+timeout). A session lives on for the whole timeout after the user left. **Active users** are only
+those in the app right now: new sessions per minute × minutes in the app.
 
-Example: 20 logins per minute, 15 minutes in the app, 30 minutes timeout:
+Example: 20 logins per minute, 15 minutes in the app, 30 minutes timeout, and an assumed 0.3 MB
+extra heap per active user:
 
 ```
-sessions  = 20 × (15 + 30)                 =   900
-max heap  = (50 MB + 900 × 0.19 MB) × 2    ≈   440 MB
-container = 175 MB + 100 MB + 440 MB       ≈   715 MB  → 1 GB, heap limited to ~500 MB
+sessions     = 20 × (15 + 30)                            =   900
+active users = 20 × 15                                   =   300
+max heap     = (50 MB + 900 × 0.19 MB + 300 × 0.3 MB) × 2 ≈   620 MB
+container    = 175 MB + 100 MB + 620 MB                  ≈   895 MB  → 1 GB, heap limited to ~650 MB
 ```
+
+### Check the projection under load
+
+The projection is a model; a load test with the projected container confirms it. Start the
+container with the projected limits and run as many users as will be active at the same time:
+
+```bash
+APP_MEMORY=1g APP_MAX_RAM_PERCENTAGE=65 docker compose up -d
+USERS=300 loadtest/measure-session-size.sh check-1g
+```
+
+The projection holds if, in `summary.txt` (under load):
+
+- **peak container memory** stays clearly below the limit (otherwise more memory besides the heap:
+  lower `APP_MAX_RAM_PERCENTAGE` or raise `APP_MEMORY`),
+- **peak heap after GC** is at most about half of the max heap (`APP_MEMORY` × `APP_MAX_RAM_PERCENTAGE`),
+- there are **no or only few full GCs** and no long pauses (`gc.csv`); many full GCs mean the heap
+  is too small for the load, even if the app does not crash.
+
+`container.csv` and `gc.csv` show the course over time, e.g. to plot them.
 
 The JVM does not size the heap on its own terms: in a container it takes `MaxRAMPercentage` of
 the memory limit (default 25 %, 75 % in `compose.yaml`). Too little room besides the heap and the
