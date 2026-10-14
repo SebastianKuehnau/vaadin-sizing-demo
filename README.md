@@ -48,6 +48,35 @@ random field, save, delete the person. `loadtest:record` (`testbench-converter-p
 once in Chrome through a recording proxy and turns the traffic into the k6 script `src/test/k6/recordings/edit-person.js`. k6 replays it with any number of virtual users;
 every virtual user leaves exactly **one session with one UI** behind.
 
+### Record and run the k6 script locally (without Docker)
+
+The scripts above do this in the container. To record and run the k6 script by hand against a
+locally started app (ports 8080 and 8081 must be free, so stop the container first with
+`docker compose stop`):
+
+```bash
+# 1. Build and start the app as in the image: production build with the loadtest profile
+./mvnw clean package -DskipTests -Ploadtest
+java -jar target/vaadin-sizing-demo-1.0-SNAPSHOT.jar
+
+# 2. In a second terminal: record the k6 script (runs EditPersonScenario in headless Chrome)
+MAVEN_OPTS="-Dio.netty.leakDetection.level=disabled" \
+    ./mvnw -Ploadtest test-compile loadtest:record -Dk6.forceRecord=true
+
+# 3. Run it, either directly with k6 ...
+k6 run --vus 10 --iterations 10 src/test/k6/recordings/edit-person.js
+# ... or through Maven, which also writes an HTML report to src/test/k6/recordings/report/
+./mvnw -Ploadtest loadtest:run -Dk6.vus=10 -Dk6.executor=per-vu-iterations -Dk6.iterations=1
+```
+
+Another host or port: `k6 run -e APP_IP=192.168.1.100 -e APP_PORT=8080 …`, or
+`-Dk6.appIp=… -Dk6.appPort=…` for `loadtest:run`.
+
+- **Record against the build you test.** The script contains the hashed file names of the frontend
+  bundle and the component IDs. It does not work against development mode (`./mvnw`), and after
+  every code change it must be recorded again.
+- `-Dk6.forceRecord=true` records even if the scenario has not changed (`edit-person.hash`).
+
 ### How the measurement works
 
 `measure-session-size.sh` (options: `USERS`, `WARMUP_USERS`, `CHECK_BASELINE`, `IDLE_WAIT`):
