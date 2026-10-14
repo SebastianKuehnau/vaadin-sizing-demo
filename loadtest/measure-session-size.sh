@@ -8,7 +8,7 @@
 #   3. USERS virtual users run the scenario once each; every user leaves one session with one UI
 #      (one browser tab) behind, which stays in memory until the session timeout (30 minutes)
 #   4. class histogram "after"
-#   5. unless CHECK_BASELINE=false: all sessions are invalidated again and class histogram
+#   5. only with CHECK_BASELINE=true: all sessions are invalidated again and class histogram
 #      "cleared"; it should be about the baseline, otherwise the load built up one-time costs
 #      (caches) that the warmup did not and that are counted as session memory
 #
@@ -34,7 +34,7 @@
 #
 #   loadtest/measure-session-size.sh                 # 100 users
 #   USERS=200 loadtest/measure-session-size.sh lazy  # the label is added to the result directory
-#   CHECK_BASELINE=false loadtest/measure-session-size.sh  # without step 5
+#   CHECK_BASELINE=true loadtest/measure-session-size.sh   # with step 5
 #
 # Without Docker, against an app started locally with java -jar: LOCAL_PID is its process ID and
 # GC_LOG its GC log file. jcmd of the local JDK is used, and the RSS of the process (ps) replaces
@@ -57,7 +57,7 @@ set -euo pipefail
 
 USERS="${USERS:-100}"
 WARMUP_USERS="${WARMUP_USERS:-$USERS}"
-CHECK_BASELINE="${CHECK_BASELINE:-true}"
+CHECK_BASELINE="${CHECK_BASELINE:-false}"
 IDLE_WAIT="${IDLE_WAIT:-65}"
 JCMD_IMAGE="${JCMD_IMAGE:-eclipse-temurin:25-jdk-alpine}"
 APP_IP="${APP_IP:-localhost}"

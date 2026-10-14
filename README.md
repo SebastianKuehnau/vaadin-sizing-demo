@@ -93,7 +93,7 @@ script for the JVM options):
    live heap.
 3. **Load:** `USERS` virtual users run the scenario once each.
 4. **Class histogram after.**
-5. **Baseline check** (off with `CHECK_BASELINE=false`): invalidate all sessions again, class
+5. **Baseline check** (only with `CHECK_BASELINE=true`): invalidate all sessions again, class
    histogram `cleared`. It should be about the baseline; if it is higher, the load built up one-time costs
    that the warmup did not, and they are counted as session memory.
 
