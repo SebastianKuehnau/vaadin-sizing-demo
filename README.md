@@ -79,7 +79,9 @@ Another host or port: `k6 run -e APP_IP=192.168.1.100 -e APP_PORT=8080 …`, or
 
 ### How the measurement works
 
-`measure-session-size.sh` (options: `USERS`, `WARMUP_USERS`, `CHECK_BASELINE`, `IDLE_WAIT`):
+`measure-session-size.sh` (options: `USERS`, `WARMUP_USERS`, `CHECK_BASELINE`, `IDLE_WAIT`;
+`LOCAL_PID` and `GC_LOG` measure an app started with `java -jar` instead of the container, see the
+script for the JVM options):
 
 1. **Warmup:** `WARMUP_USERS` users (default: `USERS`) run the scenario once. The first requests load classes and
    fill caches, and Tomcat creates buffers for every concurrent connection. None of this is

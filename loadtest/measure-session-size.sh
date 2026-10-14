@@ -36,6 +36,20 @@
 #   USERS=200 loadtest/measure-session-size.sh lazy  # the label is added to the result directory
 #   CHECK_BASELINE=false loadtest/measure-session-size.sh  # without step 5
 #
+# Without Docker, against an app started locally with java -jar: LOCAL_PID is its process ID and
+# GC_LOG its GC log file. jcmd of the local JDK is used, and the RSS of the process (ps) replaces
+# the container memory. Start the JVM like in compose.yaml (the serial GC, which the JVM picks in
+# the container, a heap of 75 % of its 1 GB and an initial heap of 1/64 of it; without -Xms, the
+# initial heap is 1/64 of the RAM of the machine, with fewer GCs under load), otherwise the results
+# are not comparable:
+#
+#   java -XX:+UseSerialGC -Xms16m -Xmx768m -XX:MarkSweepAlwaysCompactCount=1 -Xlog:gc:file=gc.log \
+#       -jar target/vaadin-sizing-demo-1.0-SNAPSHOT.jar
+#   LOCAL_PID=$(pgrep -f vaadin-sizing-demo-1.0-SNAPSHOT.jar) GC_LOG=gc.log \
+#       loadtest/measure-session-size.sh local
+#
+# Without a CPU limit and with k6 on the same machine, the CPU per run differs from the container.
+#
 # The results are written to results/<timestamp>[-label]/: summary.txt, the class histograms
 # before.txt, after.txt and cleared.txt, the k6 logs and the memory under load: gc.csv (one line
 # per GC) and container.csv (container memory over time).
@@ -50,6 +64,8 @@ APP_IP="${APP_IP:-localhost}"
 APP_PORT="${APP_PORT:-8080}"
 MANAGEMENT_PORT="${MANAGEMENT_PORT:-8081}"
 CONTAINER="${CONTAINER:-sizing-app}"
+export LOCAL_PID="${LOCAL_PID:-}" # also read by the summary
+GC_LOG="${GC_LOG:-}"
 label="${1:-}"
 
 cd "$(dirname "$0")/.."
@@ -61,9 +77,19 @@ curl -sf "$actuator/health" >/dev/null \
 ls "$recordings"/*.js >/dev/null 2>&1 \
     || { echo "No k6 script in $recordings, record it with loadtest/rebuild.sh" >&2; exit 1; }
 
-docker logs "$CONTAINER" 2>&1 | grep '\]\[gc' >/dev/null \
-    || echo "Warning: no GC log in the container, the heap under load is not measured." \
-            "Restart the container with the current compose.yaml: docker compose up -d" >&2
+if [[ -n "$LOCAL_PID" ]]; then
+    kill -0 "$LOCAL_PID" 2>/dev/null || { echo "No process with LOCAL_PID $LOCAL_PID" >&2; exit 1; }
+    command jcmd "$LOCAL_PID" VM.flags 2>/dev/null | grep -q -- '-XX:+UseSerialGC' \
+        || echo "Warning: the app does not use the serial GC like in the container, see the start" \
+                "command at the top of this script" >&2
+    grep -q '\]\[gc' "${GC_LOG:-/dev/null}" 2>/dev/null \
+        || echo "Warning: no GC log in GC_LOG, the heap under load is not measured. Start the app" \
+                "with -Xlog:gc:file=gc.log and run this script with GC_LOG=gc.log" >&2
+else
+    docker logs "$CONTAINER" 2>&1 | grep '\]\[gc' >/dev/null \
+        || echo "Warning: no GC log in the container, the heap under load is not measured." \
+                "Restart the container with the current compose.yaml: docker compose up -d" >&2
+fi
 
 results="results/$(date +%Y%m%d-%H%M%S)${label:+-$label}"
 mkdir -p "$results"
@@ -83,10 +109,15 @@ check_app() { # fails if the app is not reachable or was restarted since the scr
     local now
     now="$(metric process.start.time 2>/dev/null)" || {
         echo "The app is not reachable ($1). It may have crashed or be restarting, see:" >&2
-        echo "  docker compose logs app; docker events --since 30m --until 0s --filter container=sizing-app" >&2
+        if [[ -n "$LOCAL_PID" ]]; then
+            echo "  the console output of the app (OutOfMemoryError?)" >&2
+        else
+            echo "  docker compose logs app; docker events --since 30m --until 0s --filter container=sizing-app" >&2
+        fi
         exit 1
     }
     [[ "$now" == "$start_time" ]] || {
+        [[ -n "$LOCAL_PID" ]] && { echo "The app was restarted ($1), the measurement is invalid" >&2; exit 1; }
         echo "The app was restarted ($1), the measurement is invalid. Most likely the container" >&2
         echo "exceeded its memory limit and was killed (exit code 137), check with:" >&2
         echo "  docker events --since 30m --until 0s --filter container=sizing-app --filter event=oom" >&2
@@ -108,8 +139,12 @@ print(int(value(total) - sum(value(get(f"{sys.argv[1]}?tag=view:{urllib.parse.qu
 EOF
 }
 
-jcmd() { # runs a jcmd command in the app, which is PID 1 in its container
-    docker run --rm --pid="container:$CONTAINER" "$JCMD_IMAGE" jcmd 1 "$@"
+jcmd() { # runs a jcmd command in the app, which is PID 1 in its container, or LOCAL_PID
+    if [[ -n "$LOCAL_PID" ]]; then
+        command jcmd "$LOCAL_PID" "$@"
+    else
+        docker run --rm --pid="container:$CONTAINER" "$JCMD_IMAGE" jcmd 1 "$@"
+    fi
 }
 
 snapshot() { # class histogram (full GC), then sessions and UIs; sets heap_, sessions_, uis_<name>
@@ -150,8 +185,13 @@ invalidate_sessions() { # ends all HTTP sessions and with them the Vaadin sessio
 
 sample_container() { # prints "<epoch seconds> <docker MemUsage>" until killed, about every 2 s
     while :; do
-        printf '%s %s\n' "$(date +%s)" \
-            "$(docker stats --no-stream --format '{{.MemUsage}}' "$CONTAINER" 2>/dev/null)" || sleep 1
+        if [[ -n "$LOCAL_PID" ]]; then # RSS of the process in the format of docker stats
+            printf '%s %sKiB / -\n' "$(date +%s)" "$(ps -o rss= -p "$LOCAL_PID" | tr -d ' ')"
+            sleep 2
+        else
+            printf '%s %s\n' "$(date +%s)" \
+                "$(docker stats --no-stream --format '{{.MemUsage}}' "$CONTAINER" 2>/dev/null)" || sleep 1
+        fi
     done
 }
 
@@ -179,10 +219,16 @@ cpu_after="$(metric process.cpu.time)"
 allocated_after="$(metric jvm.gc.memory.allocated)"
 heap_committed="$(metric jvm.memory.committed area:heap)"
 nonheap="$(metric jvm.memory.used area:nonheap)"
-container_limit="$(docker inspect --format '{{.HostConfig.Memory}}' "$CONTAINER")"
-# The GCs of the load phase; docker logs only filters by second, so gc_line also checks the uptime
-docker logs --since "$load_start" --until "$((load_end + 1))" "$CONTAINER" 2>&1 \
-    | grep '\]\[gc' > "$results/gc.log" || true
+if [[ -n "$LOCAL_PID" ]]; then
+    container_limit=0
+    # The whole GC log; gc_line keeps the GCs of the load phase by their uptime
+    grep -h '\]\[gc' "${GC_LOG:-/dev/null}" > "$results/gc.log" 2>/dev/null || true
+else
+    container_limit="$(docker inspect --format '{{.HostConfig.Memory}}' "$CONTAINER")"
+    # The GCs of the load phase; docker logs only filters by second, so gc_line also checks the uptime
+    docker logs --since "$load_start" --until "$((load_end + 1))" "$CONTAINER" 2>&1 \
+        | grep '\]\[gc' > "$results/gc.log" || true
+fi
 
 echo "Class histogram after (in ${IDLE_WAIT} s)"
 snapshot after
@@ -199,7 +245,7 @@ python3 - "$results" "$USERS" "$heap_before" "$sessions_before" "$heap_after" "$
     "$heap_committed" "$nonheap" "$container_limit" "$heap_cleared" "$sessions_cleared" "$uptime_start" "$uptime_end" \
     "$uis_before" "$uis_after" "$uis_cleared" \
     <<'EOF' | tee "$results/summary.txt"
-import re, sys
+import os, re, sys
 results = sys.argv[1]
 (users, heap_before, sessions_before, heap_after, sessions_after, cpu_before, cpu_after,
  allocated_before, allocated_after, load_start, load_end, heap_committed, nonheap,
@@ -268,11 +314,13 @@ else:
 print(f"allocated per run:         {mb(allocated / new_sessions):7.1f} MB  ({mb(allocated / duration):.0f} MB/s)")
 print(f"heap committed:            {mb(heap_committed):7.1f} MB")
 print(f"non-heap used:             {mb(nonheap):7.1f} MB  (metaspace, code cache)")
+local = bool(os.environ.get("LOCAL_PID"))
 if container:
     limit = f" of {mb(container_limit):.0f} MB limit" if container_limit else ""
-    print(f"peak container memory:     {mb(max(container)):7.1f} MB{limit}")
+    print(f"peak {'process RSS:      ' if local else 'container memory:'}     {mb(max(container)):7.1f} MB{limit}")
 else:
-    print("peak container memory:         n/a  (docker stats failed, see container-samples.txt)")
+    print(f"peak {'process RSS:      ' if local else 'container memory:'}         n/a"
+          f"  ({'ps' if local else 'docker stats'} failed, see container-samples.txt)")
 
 def histogram(name):  # {class: (instances, bytes)}
     with open(f"{results}/{name}.txt") as file:
