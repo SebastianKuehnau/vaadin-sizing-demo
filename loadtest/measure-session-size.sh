@@ -74,6 +74,11 @@ recordings=src/test/k6/recordings
 
 curl -sf "$actuator/health" >/dev/null \
     || { echo "The app is not running, start it with loadtest/rebuild.sh" >&2; exit 1; }
+# The Actuator can be reachable while the app port is not, e.g. if another process held the port
+# when the container started; then every k6 request fails and no session is created
+curl -s -o /dev/null "http://$APP_IP:$APP_PORT/" \
+    || { echo "The app port $APP_IP:$APP_PORT is not reachable (the Actuator is). Is another app" \
+              "using the port? Restart the container: docker compose up -d --force-recreate" >&2; exit 1; }
 ls "$recordings"/*.js >/dev/null 2>&1 \
     || { echo "No k6 script in $recordings, record it with loadtest/rebuild.sh" >&2; exit 1; }
 
@@ -213,6 +218,9 @@ sample_container > "$results/container-samples.txt" &
 sampler=$!
 k6run load "$USERS" -Dk6.managementPort="$MANAGEMENT_PORT"
 kill "$sampler"
+# k6 passes even if every request failed, as the thresholds only check durations
+[[ "$(metric tomcat.sessions.active.current)" -gt 0 ]] \
+    || { echo "No sessions after the load, the k6 requests failed, see $results/load.log" >&2; exit 1; }
 load_end="$(date +%s)"
 uptime_end="$(uptime)"
 cpu_after="$(metric process.cpu.time)"
@@ -271,7 +279,7 @@ if uis_after - max(uis_before, 0) != sessions_after - sessions_before:
     print("Warning: not one UI per new session (-1: UI count not available), the memory per session"
           " is not the memory of one user with one browser tab")
 if new_sessions <= 0:
-    sys.exit("No new sessions, check the k6 log")
+    print("No new sessions, check the k6 log"); sys.exit(1)
 per_session = (heap_after - heap_before) / new_sessions
 print(f"\nmemory per session:        {per_session / 1024:7.0f} KB  ({new_sessions} new sessions)")
 print(f"live heap without sessions: {mb(heap_before):6.1f} MB  (baseline)")
