@@ -1,4 +1,6 @@
-<?xml version="1.0" encoding="UTF-8"?><project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <!-- Project from https://start.vaadin.com/project/0888edd5-8d56-4acc-9f80-cd0677fda029 -->
     <groupId>org.vaadin.demo</groupId>
@@ -8,7 +10,7 @@
     <packaging>jar</packaging>
     <properties>
         <java.version>25</java.version>
-        <vaadin.version>25.3.0</vaadin.version>
+        <vaadin.version>25.3.2</vaadin.version>
     </properties>
     <parent>
         <groupId>org.springframework.boot</groupId>
@@ -76,7 +78,7 @@
         <dependency>
             <groupId>com.vaadin</groupId>
             <artifactId>testbench-loadtest-support</artifactId>
-            <version>${vaadin.version}</version>
+            <version>25.3.1</version>
             <scope>test</scope>
         </dependency>
 
@@ -170,7 +172,7 @@
                 <dependency>
                     <groupId>com.vaadin</groupId>
                     <artifactId>testbench-loadtest-support</artifactId>
-                    <version>${vaadin.version}</version>
+                    <version>25.3.1</version>
                     <scope>compile</scope>
                 </dependency>
             </dependencies>
@@ -179,7 +181,7 @@
                     <plugin>
                         <groupId>com.vaadin</groupId>
                         <artifactId>testbench-converter-plugin</artifactId>
-                        <version>${vaadin.version}</version>
+                        <version>25.3.1</version>
                         <configuration>
                             <testClasses>
                                 <testClass>EditPersonScenario</testClass>

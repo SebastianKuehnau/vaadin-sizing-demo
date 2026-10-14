@@ -13,20 +13,20 @@ export const options = {
     checks: [{ threshold: 'rate>=0.99', abortOnFail: true, delayAbortEval: '5s' }],
     http_req_duration: ['p(95)<2000', 'p(99)<5000'],
     'http_req_duration{name:edit-person: 1 GET /crud-example}': ['max>=0'],
-    'http_req_duration{name:edit-person: 2 GET /VAADIN/build/indexhtml-CRBK0SRI.js}': ['max>=0'],
-    'http_req_duration{name:edit-person: 3 GET /aura/aura.css}': ['max>=0'],
-    'http_req_duration{name:edit-person: 4 GET /VAADIN/build/rolldown-runtime-8BhlS34s.js}': ['max>=0'],
-    'http_req_duration{name:edit-person: 5 GET /VAADIN/build/frontend-DYOqZG7p.js}': ['max>=0'],
-    'http_req_duration{name:edit-person: 6 GET /styles.css}': ['max>=0'],
+    'http_req_duration{name:edit-person: 2 GET /VAADIN/build/indexhtml-C3yALC2j.js}': ['max>=0'],
+    'http_req_duration{name:edit-person: 3 GET /VAADIN/build/rolldown-runtime-8BhlS34s.js}': ['max>=0'],
+    'http_req_duration{name:edit-person: 4 GET /aura/aura.css}': ['max>=0'],
+    'http_req_duration{name:edit-person: 5 GET /styles.css}': ['max>=0'],
+    'http_req_duration{name:edit-person: 6 GET /VAADIN/build/frontend-CpN5YtXx.js}': ['max>=0'],
     'http_req_duration{name:edit-person: 7 GET /aura/fonts/InstrumentSans/InstrumentSans.woff2}': ['max>=0'],
     'http_req_duration{name:edit-person: 8 GET init}': ['max>=0'],
     'http_req_duration{name:edit-person: 9 GET /VAADIN/build/FlowBootstrap-xhSPwkAC.js}': ['max>=0'],
-    'http_req_duration{name:edit-person: 10 GET /VAADIN/build/generated-flow-imports-BIIPXANG.js}': ['max>=0'],
-    'http_req_duration{name:edit-person: 11 GET /VAADIN/build/FlowClient-DVypvd1h.js}': ['max>=0'],
-    'http_req_duration{name:edit-person: 12 GET /VAADIN/build/ApplicationConnection-DodrPk-H.js}': ['max>=0'],
+    'http_req_duration{name:edit-person: 10 GET /VAADIN/build/generated-flow-imports-D9WZvzk9.js}': ['max>=0'],
+    'http_req_duration{name:edit-person: 11 GET /VAADIN/build/FlowClient-BlTLNI_Y.js}': ['max>=0'],
+    'http_req_duration{name:edit-person: 12 GET /VAADIN/build/ApplicationConnection-BpKvJiAI.js}': ['max>=0'],
     'http_req_duration{name:edit-person: 13 POST uidl}': ['max>=0'],
-    'http_req_duration{name:edit-person: 14 GET /edgedl/diffgen-puffin/ceofaddefefcbblgcgnibnonglccbfja/...}': ['max>=0'],
-    'http_req_duration{name:edit-person: 15 GET /VAADIN/build/chunk-...-BaTzdjoW.js}': ['max>=0'],
+    'http_req_duration{name:edit-person: 14 GET /VAADIN/build/chunk-...-DWQp7s5T.js}': ['max>=0'],
+    'http_req_duration{name:edit-person: 15 GET /edgedl/diffgen-puffin/ceofaddefefcbblgcgnibnonglccbfja/...}': ['max>=0'],
     'http_req_duration{name:edit-person: 16 POST uidl}': ['max>=0'],
     'http_req_duration{name:edit-person: 17 POST uidl}': ['max>=0'],
     'http_req_duration{name:edit-person: 18 POST uidl}': ['max>=0'],
@@ -46,6 +46,7 @@ export const options = {
     'http_req_duration{name:edit-person: 32 POST uidl}': ['max>=0'],
     'http_req_duration{name:edit-person: 33 POST uidl}': ['max>=0'],
     'http_req_duration{name:edit-person: 34 POST uidl}': ['max>=0'],
+    'http_req_duration{name:edit-person: 35 POST uidl}': ['max>=0'],
   },
 }
 
@@ -106,12 +107,12 @@ export default function () {
     {
       headers: {
       'Proxy-Connection': 'keep-alive',
-      'sec-ch-ua': '"Chromium";v="154", "Google Chrome";v="154", "Not A(Brand";v="99"',
+      'sec-ch-ua': '"Google Chrome";v="155", "Chromium";v="155", "Not(A:Brand";v="24"',
       'sec-ch-ua-mobile': '?0',
       'sec-ch-ua-platform': '"macOS"',
       'Upgrade-Insecure-Requests': '1',
-      'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/154.0.0.0 Safari/537.36',
-      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
+      'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36',
+      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
       'Sec-Fetch-Site': 'none',
       'Sec-Fetch-Mode': 'navigate',
       'Sec-Fetch-User': '?1',
@@ -132,17 +133,17 @@ const hillaCsrfToken = getHillaCsrfToken(response.body);
     console.error(`edit-person: 1 GET /crud-example: HTTP ${response.status} ${response.url} - ${String(response.body).substring(0, 200)}`)
   }
 
-  // HAR_DELTA_MS: 122
-  // Request 2: GET http://localhost:8080/VAADIN/build/indexhtml-CRBK0SRI.js
+  // HAR_DELTA_MS: 86
+  // Request 2: GET http://localhost:8080/VAADIN/build/indexhtml-C3yALC2j.js
   response = http.get(
-    `${BASE_URL}/VAADIN/build/indexhtml-CRBK0SRI.js`,
+    `${BASE_URL}/VAADIN/build/indexhtml-C3yALC2j.js`,
     {
       headers: {
       'Proxy-Connection': 'keep-alive',
       'Origin': `${BASE_URL}`,
       'sec-ch-ua-platform': '"macOS"',
-      'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/154.0.0.0 Safari/537.36',
-      'sec-ch-ua': '"Chromium";v="154", "Google Chrome";v="154", "Not A(Brand";v="99"',
+      'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36',
+      'sec-ch-ua': '"Google Chrome";v="155", "Chromium";v="155", "Not(A:Brand";v="24"',
       'sec-ch-ua-mobile': '?0',
       'Accept': '*/*',
       'Sec-Fetch-Site': 'same-origin',
@@ -151,42 +152,16 @@ const hillaCsrfToken = getHillaCsrfToken(response.body);
       'Referer': `${BASE_URL}/crud-example`,
       'Accept-Language': 'en-GB,en-US;q=0.9,en;q=0.8'
     },
-      tags: { name: 'edit-person: 2 GET /VAADIN/build/indexhtml-CRBK0SRI.js' }
+      tags: { name: 'edit-person: 2 GET /VAADIN/build/indexhtml-C3yALC2j.js' }
     }
   )
 
-  if (!check(response, { 'status < 400': (r) => r.status < 400 }, { name: 'edit-person: 2 GET /VAADIN/build/indexhtml-CRBK0SRI.js' })) {
-    console.error(`edit-person: 2 GET /VAADIN/build/indexhtml-CRBK0SRI.js: HTTP ${response.status} ${response.url} - ${String(response.body).substring(0, 200)}`)
-  }
-
-  // HAR_DELTA_MS: 0
-  // Request 3: GET http://localhost:8080/aura/aura.css?v-c=af4a6541
-  response = http.get(
-    `${BASE_URL}/aura/aura.css?v-c=af4a6541`,
-    {
-      headers: {
-      'Proxy-Connection': 'keep-alive',
-      'sec-ch-ua-platform': '"macOS"',
-      'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/154.0.0.0 Safari/537.36',
-      'sec-ch-ua': '"Chromium";v="154", "Google Chrome";v="154", "Not A(Brand";v="99"',
-      'sec-ch-ua-mobile': '?0',
-      'Accept': 'text/css,*/*;q=0.1',
-      'Sec-Fetch-Site': 'same-origin',
-      'Sec-Fetch-Mode': 'no-cors',
-      'Sec-Fetch-Dest': 'style',
-      'Referer': `${BASE_URL}/crud-example`,
-      'Accept-Language': 'en-GB,en-US;q=0.9,en;q=0.8'
-    },
-      tags: { name: 'edit-person: 3 GET /aura/aura.css' }
-    }
-  )
-
-  if (!check(response, { 'status < 400': (r) => r.status < 400 }, { name: 'edit-person: 3 GET /aura/aura.css' })) {
-    console.error(`edit-person: 3 GET /aura/aura.css: HTTP ${response.status} ${response.url} - ${String(response.body).substring(0, 200)}`)
+  if (!check(response, { 'status < 400': (r) => r.status < 400 }, { name: 'edit-person: 2 GET /VAADIN/build/indexhtml-C3yALC2j.js' })) {
+    console.error(`edit-person: 2 GET /VAADIN/build/indexhtml-C3yALC2j.js: HTTP ${response.status} ${response.url} - ${String(response.body).substring(0, 200)}`)
   }
 
   // HAR_DELTA_MS: 1
-  // Request 4: GET http://localhost:8080/VAADIN/build/rolldown-runtime-8BhlS34s.js
+  // Request 3: GET http://localhost:8080/VAADIN/build/rolldown-runtime-8BhlS34s.js
   response = http.get(
     `${BASE_URL}/VAADIN/build/rolldown-runtime-8BhlS34s.js`,
     {
@@ -194,8 +169,8 @@ const hillaCsrfToken = getHillaCsrfToken(response.body);
       'Proxy-Connection': 'keep-alive',
       'Origin': `${BASE_URL}`,
       'sec-ch-ua-platform': '"macOS"',
-      'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/154.0.0.0 Safari/537.36',
-      'sec-ch-ua': '"Chromium";v="154", "Google Chrome";v="154", "Not A(Brand";v="99"',
+      'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36',
+      'sec-ch-ua': '"Google Chrome";v="155", "Chromium";v="155", "Not(A:Brand";v="24"',
       'sec-ch-ua-mobile': '?0',
       'Accept': '*/*',
       'Sec-Fetch-Site': 'same-origin',
@@ -204,51 +179,24 @@ const hillaCsrfToken = getHillaCsrfToken(response.body);
       'Referer': `${BASE_URL}/crud-example`,
       'Accept-Language': 'en-GB,en-US;q=0.9,en;q=0.8'
     },
-      tags: { name: 'edit-person: 4 GET /VAADIN/build/rolldown-runtime-8BhlS34s.js' }
+      tags: { name: 'edit-person: 3 GET /VAADIN/build/rolldown-runtime-8BhlS34s.js' }
     }
   )
 
-  if (!check(response, { 'status < 400': (r) => r.status < 400 }, { name: 'edit-person: 4 GET /VAADIN/build/rolldown-runtime-8BhlS34s.js' })) {
-    console.error(`edit-person: 4 GET /VAADIN/build/rolldown-runtime-8BhlS34s.js: HTTP ${response.status} ${response.url} - ${String(response.body).substring(0, 200)}`)
+  if (!check(response, { 'status < 400': (r) => r.status < 400 }, { name: 'edit-person: 3 GET /VAADIN/build/rolldown-runtime-8BhlS34s.js' })) {
+    console.error(`edit-person: 3 GET /VAADIN/build/rolldown-runtime-8BhlS34s.js: HTTP ${response.status} ${response.url} - ${String(response.body).substring(0, 200)}`)
   }
 
-  // HAR_DELTA_MS: 0
-  // Request 5: GET http://localhost:8080/VAADIN/build/frontend-DYOqZG7p.js
+  // HAR_DELTA_MS: 5
+  // Request 4: GET http://localhost:8080/aura/aura.css?v-c=ce6db2e7
   response = http.get(
-    `${BASE_URL}/VAADIN/build/frontend-DYOqZG7p.js`,
-    {
-      headers: {
-      'Proxy-Connection': 'keep-alive',
-      'Origin': `${BASE_URL}`,
-      'sec-ch-ua-platform': '"macOS"',
-      'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/154.0.0.0 Safari/537.36',
-      'sec-ch-ua': '"Chromium";v="154", "Google Chrome";v="154", "Not A(Brand";v="99"',
-      'sec-ch-ua-mobile': '?0',
-      'Accept': '*/*',
-      'Sec-Fetch-Site': 'same-origin',
-      'Sec-Fetch-Mode': 'cors',
-      'Sec-Fetch-Dest': 'script',
-      'Referer': `${BASE_URL}/crud-example`,
-      'Accept-Language': 'en-GB,en-US;q=0.9,en;q=0.8'
-    },
-      tags: { name: 'edit-person: 5 GET /VAADIN/build/frontend-DYOqZG7p.js' }
-    }
-  )
-
-  if (!check(response, { 'status < 400': (r) => r.status < 400 }, { name: 'edit-person: 5 GET /VAADIN/build/frontend-DYOqZG7p.js' })) {
-    console.error(`edit-person: 5 GET /VAADIN/build/frontend-DYOqZG7p.js: HTTP ${response.status} ${response.url} - ${String(response.body).substring(0, 200)}`)
-  }
-
-  // HAR_DELTA_MS: 0
-  // Request 6: GET http://localhost:8080/styles.css?v-c=7fec18be
-  response = http.get(
-    `${BASE_URL}/styles.css?v-c=7fec18be`,
+    `${BASE_URL}/aura/aura.css?v-c=ce6db2e7`,
     {
       headers: {
       'Proxy-Connection': 'keep-alive',
       'sec-ch-ua-platform': '"macOS"',
-      'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/154.0.0.0 Safari/537.36',
-      'sec-ch-ua': '"Chromium";v="154", "Google Chrome";v="154", "Not A(Brand";v="99"',
+      'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36',
+      'sec-ch-ua': '"Google Chrome";v="155", "Chromium";v="155", "Not(A:Brand";v="24"',
       'sec-ch-ua-mobile': '?0',
       'Accept': 'text/css,*/*;q=0.1',
       'Sec-Fetch-Site': 'same-origin',
@@ -257,15 +205,68 @@ const hillaCsrfToken = getHillaCsrfToken(response.body);
       'Referer': `${BASE_URL}/crud-example`,
       'Accept-Language': 'en-GB,en-US;q=0.9,en;q=0.8'
     },
-      tags: { name: 'edit-person: 6 GET /styles.css' }
+      tags: { name: 'edit-person: 4 GET /aura/aura.css' }
     }
   )
 
-  if (!check(response, { 'status < 400': (r) => r.status < 400 }, { name: 'edit-person: 6 GET /styles.css' })) {
-    console.error(`edit-person: 6 GET /styles.css: HTTP ${response.status} ${response.url} - ${String(response.body).substring(0, 200)}`)
+  if (!check(response, { 'status < 400': (r) => r.status < 400 }, { name: 'edit-person: 4 GET /aura/aura.css' })) {
+    console.error(`edit-person: 4 GET /aura/aura.css: HTTP ${response.status} ${response.url} - ${String(response.body).substring(0, 200)}`)
   }
 
-  // HAR_DELTA_MS: 119
+  // HAR_DELTA_MS: 0
+  // Request 5: GET http://localhost:8080/styles.css?v-c=7fec18be
+  response = http.get(
+    `${BASE_URL}/styles.css?v-c=7fec18be`,
+    {
+      headers: {
+      'Proxy-Connection': 'keep-alive',
+      'sec-ch-ua-platform': '"macOS"',
+      'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36',
+      'sec-ch-ua': '"Google Chrome";v="155", "Chromium";v="155", "Not(A:Brand";v="24"',
+      'sec-ch-ua-mobile': '?0',
+      'Accept': 'text/css,*/*;q=0.1',
+      'Sec-Fetch-Site': 'same-origin',
+      'Sec-Fetch-Mode': 'no-cors',
+      'Sec-Fetch-Dest': 'style',
+      'Referer': `${BASE_URL}/crud-example`,
+      'Accept-Language': 'en-GB,en-US;q=0.9,en;q=0.8'
+    },
+      tags: { name: 'edit-person: 5 GET /styles.css' }
+    }
+  )
+
+  if (!check(response, { 'status < 400': (r) => r.status < 400 }, { name: 'edit-person: 5 GET /styles.css' })) {
+    console.error(`edit-person: 5 GET /styles.css: HTTP ${response.status} ${response.url} - ${String(response.body).substring(0, 200)}`)
+  }
+
+  // HAR_DELTA_MS: 2
+  // Request 6: GET http://localhost:8080/VAADIN/build/frontend-CpN5YtXx.js
+  response = http.get(
+    `${BASE_URL}/VAADIN/build/frontend-CpN5YtXx.js`,
+    {
+      headers: {
+      'Proxy-Connection': 'keep-alive',
+      'Origin': `${BASE_URL}`,
+      'sec-ch-ua-platform': '"macOS"',
+      'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36',
+      'sec-ch-ua': '"Google Chrome";v="155", "Chromium";v="155", "Not(A:Brand";v="24"',
+      'sec-ch-ua-mobile': '?0',
+      'Accept': '*/*',
+      'Sec-Fetch-Site': 'same-origin',
+      'Sec-Fetch-Mode': 'cors',
+      'Sec-Fetch-Dest': 'script',
+      'Referer': `${BASE_URL}/crud-example`,
+      'Accept-Language': 'en-GB,en-US;q=0.9,en;q=0.8'
+    },
+      tags: { name: 'edit-person: 6 GET /VAADIN/build/frontend-CpN5YtXx.js' }
+    }
+  )
+
+  if (!check(response, { 'status < 400': (r) => r.status < 400 }, { name: 'edit-person: 6 GET /VAADIN/build/frontend-CpN5YtXx.js' })) {
+    console.error(`edit-person: 6 GET /VAADIN/build/frontend-CpN5YtXx.js: HTTP ${response.status} ${response.url} - ${String(response.body).substring(0, 200)}`)
+  }
+
+  // HAR_DELTA_MS: 42
   // Request 7: GET http://localhost:8080/aura/fonts/InstrumentSans/InstrumentSans.woff2
   response = http.get(
     `${BASE_URL}/aura/fonts/InstrumentSans/InstrumentSans.woff2`,
@@ -274,14 +275,14 @@ const hillaCsrfToken = getHillaCsrfToken(response.body);
       'Proxy-Connection': 'keep-alive',
       'Origin': `${BASE_URL}`,
       'sec-ch-ua-platform': '"macOS"',
-      'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/154.0.0.0 Safari/537.36',
-      'sec-ch-ua': '"Chromium";v="154", "Google Chrome";v="154", "Not A(Brand";v="99"',
+      'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36',
+      'sec-ch-ua': '"Google Chrome";v="155", "Chromium";v="155", "Not(A:Brand";v="24"',
       'sec-ch-ua-mobile': '?0',
       'Accept': '*/*',
       'Sec-Fetch-Site': 'same-origin',
       'Sec-Fetch-Mode': 'cors',
       'Sec-Fetch-Dest': 'font',
-      'Referer': `${BASE_URL}/aura/aura.css?v-c=af4a6541`,
+      'Referer': `${BASE_URL}/aura/aura.css?v-c=ce6db2e7`,
       'Accept-Language': 'en-GB,en-US;q=0.9,en;q=0.8'
     },
       tags: { name: 'edit-person: 7 GET /aura/fonts/InstrumentSans/InstrumentSans.woff2' }
@@ -292,16 +293,16 @@ const hillaCsrfToken = getHillaCsrfToken(response.body);
     console.error(`edit-person: 7 GET /aura/fonts/InstrumentSans/InstrumentSans.woff2: HTTP ${response.status} ${response.url} - ${String(response.body).substring(0, 200)}`)
   }
 
-  // HAR_DELTA_MS: 13
+  // HAR_DELTA_MS: 12
   // Request 8: GET http://localhost:8080/?v-r=init&location=crud-example&query=&v-sh=600&v-sw=80...
   response = http.get(
-    `${BASE_URL}/?v-r=init&location=crud-example&query=&v-sh=600&v-sw=800&v-wh=413&v-ww=756&v-bh=413&v-bw=756&v-curdate=1790671704434&v-tzo=-120&v-dstd=60&v-rtzo=-60&v-dston=true&v-tzid=Europe%2FBerlin&v-wn=v-0.8778000407995855&v-td=false&v-pr=1&v-np=MacIntel&v-cs=&v-pv=VISIBLE&v-fs=NOT_FULLSCREEN&v-so=landscape-primary&v-soa=0&v-tn=aura&v-ga=GRANTED&v-wla=SUPPORTED&v-ws=true`,
+    `${BASE_URL}/?v-r=init&location=crud-example&query=&v-sh=600&v-sw=800&v-wh=413&v-ww=756&v-bh=413&v-bw=756&v-curdate=1791991443982&v-tzo=-120&v-dstd=60&v-rtzo=-60&v-dston=true&v-tzid=Europe%2FBerlin&v-wn=v-0.7868191213650988&v-td=false&v-pr=1&v-np=MacIntel&v-cs=&v-pv=VISIBLE&v-fs=NOT_FULLSCREEN&v-so=landscape-primary&v-soa=0&v-tn=aura&v-ga=GRANTED&v-wla=SUPPORTED&v-ws=true`,
     {
       headers: {
       'Proxy-Connection': 'keep-alive',
       'sec-ch-ua-platform': '"macOS"',
-      'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/154.0.0.0 Safari/537.36',
-      'sec-ch-ua': '"Chromium";v="154", "Google Chrome";v="154", "Not A(Brand";v="99"',
+      'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36',
+      'sec-ch-ua': '"Google Chrome";v="155", "Chromium";v="155", "Not(A:Brand";v="24"',
       'sec-ch-ua-mobile': '?0',
       'Accept': '*/*',
       'Sec-Fetch-Site': 'same-origin',
@@ -326,9 +327,6 @@ const hillaCsrfToken = getHillaCsrfToken(response.body);
     'valid init response': (r) => (r.body || '').includes('"v-uiId"') && (r.body || '').includes('"Vaadin-Security-Key"'),
   })) {
     fail(`Request 8 (GET http://localhost:8080/?v-r=init&location=crud-example&query=&v-sh=600&v-sw=80...): init failed (status ${response.status}): ${body.substring(0, 200)}`)
-
-// Think time: user reading the page
-sleep(2.0 + Math.random() * 3.0);
   }
 
   // Extract Vaadin session values from init response
@@ -341,7 +339,7 @@ sleep(2.0 + Math.random() * 3.0);
   let nodeMap = {}
   nodeMap = updateNodeMap(nodeMap, response.body)
 
-  // HAR_DELTA_MS: 264
+  // HAR_DELTA_MS: 76
   // Request 9: GET http://localhost:8080/VAADIN/build/FlowBootstrap-xhSPwkAC.js
   response = http.get(
     `${BASE_URL}/VAADIN/build/FlowBootstrap-xhSPwkAC.js`,
@@ -350,8 +348,8 @@ sleep(2.0 + Math.random() * 3.0);
       'Proxy-Connection': 'keep-alive',
       'Origin': `${BASE_URL}`,
       'sec-ch-ua-platform': '"macOS"',
-      'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/154.0.0.0 Safari/537.36',
-      'sec-ch-ua': '"Chromium";v="154", "Google Chrome";v="154", "Not A(Brand";v="99"',
+      'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36',
+      'sec-ch-ua': '"Google Chrome";v="155", "Chromium";v="155", "Not(A:Brand";v="24"',
       'sec-ch-ua-mobile': '?0',
       'Accept': '*/*',
       'Sec-Fetch-Site': 'same-origin',
@@ -364,21 +362,24 @@ sleep(2.0 + Math.random() * 3.0);
     }
   )
 
+// Think time: user reading the page
+sleep(2.0 + Math.random() * 3.0);
+
   if (!check(response, { 'status < 400': (r) => r.status < 400 }, { name: 'edit-person: 9 GET /VAADIN/build/FlowBootstrap-xhSPwkAC.js' })) {
     console.error(`edit-person: 9 GET /VAADIN/build/FlowBootstrap-xhSPwkAC.js: HTTP ${response.status} ${response.url} - ${String(response.body).substring(0, 200)}`)
   }
 
-  // HAR_DELTA_MS: 10
-  // Request 10: GET http://localhost:8080/VAADIN/build/generated-flow-imports-BIIPXANG.js
+  // HAR_DELTA_MS: 145
+  // Request 10: GET http://localhost:8080/VAADIN/build/generated-flow-imports-D9WZvzk9.js
   response = http.get(
-    `${BASE_URL}/VAADIN/build/generated-flow-imports-BIIPXANG.js`,
+    `${BASE_URL}/VAADIN/build/generated-flow-imports-D9WZvzk9.js`,
     {
       headers: {
       'Proxy-Connection': 'keep-alive',
       'Origin': `${BASE_URL}`,
       'sec-ch-ua-platform': '"macOS"',
-      'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/154.0.0.0 Safari/537.36',
-      'sec-ch-ua': '"Chromium";v="154", "Google Chrome";v="154", "Not A(Brand";v="99"',
+      'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36',
+      'sec-ch-ua': '"Google Chrome";v="155", "Chromium";v="155", "Not(A:Brand";v="24"',
       'sec-ch-ua-mobile': '?0',
       'Accept': '*/*',
       'Sec-Fetch-Site': 'same-origin',
@@ -387,25 +388,25 @@ sleep(2.0 + Math.random() * 3.0);
       'Referer': `${BASE_URL}/crud-example`,
       'Accept-Language': 'en-GB,en-US;q=0.9,en;q=0.8'
     },
-      tags: { name: 'edit-person: 10 GET /VAADIN/build/generated-flow-imports-BIIPXANG.js' }
+      tags: { name: 'edit-person: 10 GET /VAADIN/build/generated-flow-imports-D9WZvzk9.js' }
     }
   )
 
-  if (!check(response, { 'status < 400': (r) => r.status < 400 }, { name: 'edit-person: 10 GET /VAADIN/build/generated-flow-imports-BIIPXANG.js' })) {
-    console.error(`edit-person: 10 GET /VAADIN/build/generated-flow-imports-BIIPXANG.js: HTTP ${response.status} ${response.url} - ${String(response.body).substring(0, 200)}`)
+  if (!check(response, { 'status < 400': (r) => r.status < 400 }, { name: 'edit-person: 10 GET /VAADIN/build/generated-flow-imports-D9WZvzk9.js' })) {
+    console.error(`edit-person: 10 GET /VAADIN/build/generated-flow-imports-D9WZvzk9.js: HTTP ${response.status} ${response.url} - ${String(response.body).substring(0, 200)}`)
   }
 
-  // HAR_DELTA_MS: 18
-  // Request 11: GET http://localhost:8080/VAADIN/build/FlowClient-DVypvd1h.js
+  // HAR_DELTA_MS: 6
+  // Request 11: GET http://localhost:8080/VAADIN/build/FlowClient-BlTLNI_Y.js
   response = http.get(
-    `${BASE_URL}/VAADIN/build/FlowClient-DVypvd1h.js`,
+    `${BASE_URL}/VAADIN/build/FlowClient-BlTLNI_Y.js`,
     {
       headers: {
       'Proxy-Connection': 'keep-alive',
       'Origin': `${BASE_URL}`,
       'sec-ch-ua-platform': '"macOS"',
-      'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/154.0.0.0 Safari/537.36',
-      'sec-ch-ua': '"Chromium";v="154", "Google Chrome";v="154", "Not A(Brand";v="99"',
+      'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36',
+      'sec-ch-ua': '"Google Chrome";v="155", "Chromium";v="155", "Not(A:Brand";v="24"',
       'sec-ch-ua-mobile': '?0',
       'Accept': '*/*',
       'Sec-Fetch-Site': 'same-origin',
@@ -414,25 +415,25 @@ sleep(2.0 + Math.random() * 3.0);
       'Referer': `${BASE_URL}/crud-example`,
       'Accept-Language': 'en-GB,en-US;q=0.9,en;q=0.8'
     },
-      tags: { name: 'edit-person: 11 GET /VAADIN/build/FlowClient-DVypvd1h.js' }
+      tags: { name: 'edit-person: 11 GET /VAADIN/build/FlowClient-BlTLNI_Y.js' }
     }
   )
 
-  if (!check(response, { 'status < 400': (r) => r.status < 400 }, { name: 'edit-person: 11 GET /VAADIN/build/FlowClient-DVypvd1h.js' })) {
-    console.error(`edit-person: 11 GET /VAADIN/build/FlowClient-DVypvd1h.js: HTTP ${response.status} ${response.url} - ${String(response.body).substring(0, 200)}`)
+  if (!check(response, { 'status < 400': (r) => r.status < 400 }, { name: 'edit-person: 11 GET /VAADIN/build/FlowClient-BlTLNI_Y.js' })) {
+    console.error(`edit-person: 11 GET /VAADIN/build/FlowClient-BlTLNI_Y.js: HTTP ${response.status} ${response.url} - ${String(response.body).substring(0, 200)}`)
   }
 
-  // HAR_DELTA_MS: 9
-  // Request 12: GET http://localhost:8080/VAADIN/build/ApplicationConnection-DodrPk-H.js
+  // HAR_DELTA_MS: 5
+  // Request 12: GET http://localhost:8080/VAADIN/build/ApplicationConnection-BpKvJiAI.js
   response = http.get(
-    `${BASE_URL}/VAADIN/build/ApplicationConnection-DodrPk-H.js`,
+    `${BASE_URL}/VAADIN/build/ApplicationConnection-BpKvJiAI.js`,
     {
       headers: {
       'Proxy-Connection': 'keep-alive',
       'Origin': `${BASE_URL}`,
       'sec-ch-ua-platform': '"macOS"',
-      'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/154.0.0.0 Safari/537.36',
-      'sec-ch-ua': '"Chromium";v="154", "Google Chrome";v="154", "Not A(Brand";v="99"',
+      'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36',
+      'sec-ch-ua': '"Google Chrome";v="155", "Chromium";v="155", "Not(A:Brand";v="24"',
       'sec-ch-ua-mobile': '?0',
       'Accept': '*/*',
       'Sec-Fetch-Site': 'same-origin',
@@ -441,15 +442,15 @@ sleep(2.0 + Math.random() * 3.0);
       'Referer': `${BASE_URL}/crud-example`,
       'Accept-Language': 'en-GB,en-US;q=0.9,en;q=0.8'
     },
-      tags: { name: 'edit-person: 12 GET /VAADIN/build/ApplicationConnection-DodrPk-H.js' }
+      tags: { name: 'edit-person: 12 GET /VAADIN/build/ApplicationConnection-BpKvJiAI.js' }
     }
   )
 
-  if (!check(response, { 'status < 400': (r) => r.status < 400 }, { name: 'edit-person: 12 GET /VAADIN/build/ApplicationConnection-DodrPk-H.js' })) {
-    console.error(`edit-person: 12 GET /VAADIN/build/ApplicationConnection-DodrPk-H.js: HTTP ${response.status} ${response.url} - ${String(response.body).substring(0, 200)}`)
+  if (!check(response, { 'status < 400': (r) => r.status < 400 }, { name: 'edit-person: 12 GET /VAADIN/build/ApplicationConnection-BpKvJiAI.js' })) {
+    console.error(`edit-person: 12 GET /VAADIN/build/ApplicationConnection-BpKvJiAI.js: HTTP ${response.status} ${response.url} - ${String(response.body).substring(0, 200)}`)
   }
 
-  // HAR_DELTA_MS: 17
+  // HAR_DELTA_MS: 16
   // Request 13: POST http://localhost:8080/?v-r=uidl&v-uiId=0
   /* unresolved node 1 */
   response = http.post(
@@ -459,8 +460,8 @@ sleep(2.0 + Math.random() * 3.0);
       headers: {
       'Proxy-Connection': 'keep-alive',
       'sec-ch-ua-platform': '"macOS"',
-      'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/154.0.0.0 Safari/537.36',
-      'sec-ch-ua': '"Chromium";v="154", "Google Chrome";v="154", "Not A(Brand";v="99"',
+      'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36',
+      'sec-ch-ua': '"Google Chrome";v="155", "Chromium";v="155", "Not(A:Brand";v="24"',
       'Content-Type': 'application/json; charset=UTF-8',
       'sec-ch-ua-mobile': '?0',
       'Accept': '*/*',
@@ -503,34 +504,17 @@ sleep(2.0 + Math.random() * 3.0);
   if (found) gridKeys = found.map(s => s.split('"')[3])
   nodeMap = updateNodeMap(nodeMap, response.body)
 
-  // HAR_DELTA_MS: 84
-  // Request 14: GET http://edgedl.me.gvt1.com/edgedl/diffgen-puffin/ceofaddefefcbblgcgnibnonglccb...
+  // HAR_DELTA_MS: 51
+  // Request 14: GET http://localhost:8080/VAADIN/build/chunk-c9032f74a02a9eb2d9d0dc21b6f2c6b4c134...
   response = http.get(
-    'http://edgedl.me.gvt1.com/edgedl/diffgen-puffin/ceofaddefefcbblgcgnibnonglccbfja/fbdd96f424c67bd94b857b415c88a5711d0711f4d7a62d733ee650e5afe87766',
-    {
-      headers: {
-      'Proxy-Connection': 'keep-alive',
-      'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/154.0.0.0 Safari/537.36'
-    },
-      tags: { name: 'edit-person: 14 GET /edgedl/diffgen-puffin/ceofaddefefcbblgcgnibnonglccbfja/...' }
-    }
-  )
-
-  if (!check(response, { 'status < 400': (r) => r.status < 400 }, { name: 'edit-person: 14 GET /edgedl/diffgen-puffin/ceofaddefefcbblgcgnibnonglccbfja/...' })) {
-    console.error(`edit-person: 14 GET /edgedl/diffgen-puffin/ceofaddefefcbblgcgnibnonglccbfja/...: HTTP ${response.status} ${response.url} - ${String(response.body).substring(0, 200)}`)
-  }
-
-  // HAR_DELTA_MS: 307
-  // Request 15: GET http://localhost:8080/VAADIN/build/chunk-c9032f74a02a9eb2d9d0dc21b6f2c6b4c134...
-  response = http.get(
-    `${BASE_URL}/VAADIN/build/chunk-c9032f74a02a9eb2d9d0dc21b6f2c6b4c134b1cfc03eede290b534b2b8b21d87-BaTzdjoW.js`,
+    `${BASE_URL}/VAADIN/build/chunk-c9032f74a02a9eb2d9d0dc21b6f2c6b4c134b1cfc03eede290b534b2b8b21d87-DWQp7s5T.js`,
     {
       headers: {
       'Proxy-Connection': 'keep-alive',
       'Origin': `${BASE_URL}`,
       'sec-ch-ua-platform': '"macOS"',
-      'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/154.0.0.0 Safari/537.36',
-      'sec-ch-ua': '"Chromium";v="154", "Google Chrome";v="154", "Not A(Brand";v="99"',
+      'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36',
+      'sec-ch-ua': '"Google Chrome";v="155", "Chromium";v="155", "Not(A:Brand";v="24"',
       'sec-ch-ua-mobile': '?0',
       'Accept': '*/*',
       'Sec-Fetch-Site': 'same-origin',
@@ -539,15 +523,32 @@ sleep(2.0 + Math.random() * 3.0);
       'Referer': `${BASE_URL}/crud-example`,
       'Accept-Language': 'en-GB,en-US;q=0.9,en;q=0.8'
     },
-      tags: { name: 'edit-person: 15 GET /VAADIN/build/chunk-...-BaTzdjoW.js' }
+      tags: { name: 'edit-person: 14 GET /VAADIN/build/chunk-...-DWQp7s5T.js' }
     }
   )
 
-  if (!check(response, { 'status < 400': (r) => r.status < 400 }, { name: 'edit-person: 15 GET /VAADIN/build/chunk-...-BaTzdjoW.js' })) {
-    console.error(`edit-person: 15 GET /VAADIN/build/chunk-...-BaTzdjoW.js: HTTP ${response.status} ${response.url} - ${String(response.body).substring(0, 200)}`)
+  if (!check(response, { 'status < 400': (r) => r.status < 400 }, { name: 'edit-person: 14 GET /VAADIN/build/chunk-...-DWQp7s5T.js' })) {
+    console.error(`edit-person: 14 GET /VAADIN/build/chunk-...-DWQp7s5T.js: HTTP ${response.status} ${response.url} - ${String(response.body).substring(0, 200)}`)
   }
 
-  // HAR_DELTA_MS: 50
+  // HAR_DELTA_MS: 58
+  // Request 15: GET http://edgedl.me.gvt1.com/edgedl/diffgen-puffin/ceofaddefefcbblgcgnibnonglccb...
+  response = http.get(
+    'http://edgedl.me.gvt1.com/edgedl/diffgen-puffin/ceofaddefefcbblgcgnibnonglccbfja/dc4d98569f53b132f41034e47e7f378e5a44a6cdcbbed7cdb7ab10d6aa03268b',
+    {
+      headers: {
+      'Proxy-Connection': 'keep-alive',
+      'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36'
+    },
+      tags: { name: 'edit-person: 15 GET /edgedl/diffgen-puffin/ceofaddefefcbblgcgnibnonglccbfja/...' }
+    }
+  )
+
+  if (!check(response, { 'status < 400': (r) => r.status < 400 }, { name: 'edit-person: 15 GET /edgedl/diffgen-puffin/ceofaddefefcbblgcgnibnonglccbfja/...' })) {
+    console.error(`edit-person: 15 GET /edgedl/diffgen-puffin/ceofaddefefcbblgcgnibnonglccbfja/...: HTTP ${response.status} ${response.url} - ${String(response.body).substring(0, 200)}`)
+  }
+
+  // HAR_DELTA_MS: 13
   // Request 16: POST http://localhost:8080/?v-r=uidl&v-uiId=0
   response = http.post(
     `${BASE_URL}/?v-r=uidl&v-uiId=${uiId}`,
@@ -556,8 +557,8 @@ sleep(2.0 + Math.random() * 3.0);
       headers: {
       'Proxy-Connection': 'keep-alive',
       'sec-ch-ua-platform': '"macOS"',
-      'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/154.0.0.0 Safari/537.36',
-      'sec-ch-ua': '"Chromium";v="154", "Google Chrome";v="154", "Not A(Brand";v="99"',
+      'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36',
+      'sec-ch-ua': '"Google Chrome";v="155", "Chromium";v="155", "Not(A:Brand";v="24"',
       'Content-Type': 'application/json; charset=UTF-8',
       'sec-ch-ua-mobile': '?0',
       'Accept': '*/*',
@@ -600,17 +601,17 @@ sleep(2.0 + Math.random() * 3.0);
   if (found) gridKeys = found.map(s => s.split('"')[3])
   nodeMap = updateNodeMap(nodeMap, response.body)
 
-  // HAR_DELTA_MS: 132
+  // HAR_DELTA_MS: 244
   // Request 17: POST http://localhost:8080/?v-r=uidl&v-uiId=0
   response = http.post(
     `${BASE_URL}/?v-r=uidl&v-uiId=${uiId}`,
-    `{"csrfToken":"${csrfToken}","rpc":[{"type":"mSync","node":${resolveNode(nodeMap, 'vaadin-text-field#6')},"feature":1,"property":"value","value":"${inputRow.input_1}"},{"type":"event","node":${resolveNode(nodeMap, 'vaadin-text-field#6')},"event":"change","data":{}}],"syncId":${syncId},"clientId":${clientId}}`,
+    `{"csrfToken":"${csrfToken}","rpc":[{"type":"publishedEventHandler","node":${resolveNode(nodeMap, 'vaadin-grid#1')},"templateEventMethodName":"setViewportRange","templateEventMethodArgs":[450,100],"promise":1}],"syncId":${syncId},"clientId":${clientId}}`,
     {
       headers: {
       'Proxy-Connection': 'keep-alive',
       'sec-ch-ua-platform': '"macOS"',
-      'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/154.0.0.0 Safari/537.36',
-      'sec-ch-ua': '"Chromium";v="154", "Google Chrome";v="154", "Not A(Brand";v="99"',
+      'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36',
+      'sec-ch-ua': '"Google Chrome";v="155", "Chromium";v="155", "Not(A:Brand";v="24"',
       'Content-Type': 'application/json; charset=UTF-8',
       'sec-ch-ua-mobile': '?0',
       'Accept': '*/*',
@@ -624,9 +625,6 @@ sleep(2.0 + Math.random() * 3.0);
       tags: { name: 'edit-person: 17 POST uidl' }
     }
   )
-
-// Think time: user thinking before next action
-sleep(0.5 + Math.random() * 1.5);
 
   if (!check(response, { 'status < 400': (r) => r.status < 400 }, { name: 'edit-person: 17 POST uidl' })) {
     console.error(`edit-person: 17 POST uidl: HTTP ${response.status} ${response.url} - ${String(response.body).substring(0, 200)}`)
@@ -656,17 +654,17 @@ sleep(0.5 + Math.random() * 1.5);
   if (found) gridKeys = found.map(s => s.split('"')[3])
   nodeMap = updateNodeMap(nodeMap, response.body)
 
-  // HAR_DELTA_MS: 81
+  // HAR_DELTA_MS: 28
   // Request 18: POST http://localhost:8080/?v-r=uidl&v-uiId=0
   response = http.post(
     `${BASE_URL}/?v-r=uidl&v-uiId=${uiId}`,
-    `{"csrfToken":"${csrfToken}","rpc":[{"type":"mSync","node":${resolveNode(nodeMap, 'lastname-field')},"feature":1,"property":"value","value":"${inputRow.input_2}"},{"type":"event","node":${resolveNode(nodeMap, 'lastname-field')},"event":"change","data":{}}],"syncId":${syncId},"clientId":${clientId}}`,
+    `{"csrfToken":"${csrfToken}","rpc":[{"type":"publishedEventHandler","node":${resolveNode(nodeMap, 'vaadin-grid#1')},"templateEventMethodName":"confirmUpdate","templateEventMethodArgs":[1],"promise":2}],"syncId":${syncId},"clientId":${clientId}}`,
     {
       headers: {
       'Proxy-Connection': 'keep-alive',
       'sec-ch-ua-platform': '"macOS"',
-      'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/154.0.0.0 Safari/537.36',
-      'sec-ch-ua': '"Chromium";v="154", "Google Chrome";v="154", "Not A(Brand";v="99"',
+      'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36',
+      'sec-ch-ua': '"Google Chrome";v="155", "Chromium";v="155", "Not(A:Brand";v="24"',
       'Content-Type': 'application/json; charset=UTF-8',
       'sec-ch-ua-mobile': '?0',
       'Accept': '*/*',
@@ -680,9 +678,6 @@ sleep(0.5 + Math.random() * 1.5);
       tags: { name: 'edit-person: 18 POST uidl' }
     }
   )
-
-// Think time: user thinking before next action
-sleep(0.5 + Math.random() * 1.5);
 
   if (!check(response, { 'status < 400': (r) => r.status < 400 }, { name: 'edit-person: 18 POST uidl' })) {
     console.error(`edit-person: 18 POST uidl: HTTP ${response.status} ${response.url} - ${String(response.body).substring(0, 200)}`)
@@ -712,17 +707,17 @@ sleep(0.5 + Math.random() * 1.5);
   if (found) gridKeys = found.map(s => s.split('"')[3])
   nodeMap = updateNodeMap(nodeMap, response.body)
 
-  // HAR_DELTA_MS: 70
+  // HAR_DELTA_MS: 509
   // Request 19: POST http://localhost:8080/?v-r=uidl&v-uiId=0
   response = http.post(
     `${BASE_URL}/?v-r=uidl&v-uiId=${uiId}`,
-    `{"csrfToken":"${csrfToken}","rpc":[{"type":"mSync","node":${resolveNode(nodeMap, 'vaadin-text-field#4')},"feature":1,"property":"value","value":"${inputRow.input_3}"},{"type":"event","node":${resolveNode(nodeMap, 'vaadin-text-field#4')},"event":"change","data":{}}],"syncId":${syncId},"clientId":${clientId}}`,
+    `{"csrfToken":"${csrfToken}","rpc":[{"type":"mSync","node":${resolveNode(nodeMap, 'vaadin-text-field#6')},"feature":1,"property":"value","value":"${inputRow.input_1}"},{"type":"event","node":${resolveNode(nodeMap, 'vaadin-text-field#6')},"event":"change","data":{}}],"syncId":${syncId},"clientId":${clientId}}`,
     {
       headers: {
       'Proxy-Connection': 'keep-alive',
       'sec-ch-ua-platform': '"macOS"',
-      'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/154.0.0.0 Safari/537.36',
-      'sec-ch-ua': '"Chromium";v="154", "Google Chrome";v="154", "Not A(Brand";v="99"',
+      'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36',
+      'sec-ch-ua': '"Google Chrome";v="155", "Chromium";v="155", "Not(A:Brand";v="24"',
       'Content-Type': 'application/json; charset=UTF-8',
       'sec-ch-ua-mobile': '?0',
       'Accept': '*/*',
@@ -768,17 +763,17 @@ sleep(0.5 + Math.random() * 1.5);
   if (found) gridKeys = found.map(s => s.split('"')[3])
   nodeMap = updateNodeMap(nodeMap, response.body)
 
-  // HAR_DELTA_MS: 77
+  // HAR_DELTA_MS: 74
   // Request 20: POST http://localhost:8080/?v-r=uidl&v-uiId=0
   response = http.post(
     `${BASE_URL}/?v-r=uidl&v-uiId=${uiId}`,
-    `{"csrfToken":"${csrfToken}","rpc":[{"type":"mSync","node":${resolveNode(nodeMap, 'vaadin-text-field#3')},"feature":1,"property":"value","value":"${inputRow.input_4}"},{"type":"event","node":${resolveNode(nodeMap, 'vaadin-text-field#3')},"event":"change","data":{}}],"syncId":${syncId},"clientId":${clientId}}`,
+    `{"csrfToken":"${csrfToken}","rpc":[{"type":"mSync","node":${resolveNode(nodeMap, 'lastname-field')},"feature":1,"property":"value","value":"${inputRow.input_2}"},{"type":"event","node":${resolveNode(nodeMap, 'lastname-field')},"event":"change","data":{}}],"syncId":${syncId},"clientId":${clientId}}`,
     {
       headers: {
       'Proxy-Connection': 'keep-alive',
       'sec-ch-ua-platform': '"macOS"',
-      'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/154.0.0.0 Safari/537.36',
-      'sec-ch-ua': '"Chromium";v="154", "Google Chrome";v="154", "Not A(Brand";v="99"',
+      'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36',
+      'sec-ch-ua': '"Google Chrome";v="155", "Chromium";v="155", "Not(A:Brand";v="24"',
       'Content-Type': 'application/json; charset=UTF-8',
       'sec-ch-ua-mobile': '?0',
       'Accept': '*/*',
@@ -824,17 +819,17 @@ sleep(0.5 + Math.random() * 1.5);
   if (found) gridKeys = found.map(s => s.split('"')[3])
   nodeMap = updateNodeMap(nodeMap, response.body)
 
-  // HAR_DELTA_MS: 35
+  // HAR_DELTA_MS: 77
   // Request 21: POST http://localhost:8080/?v-r=uidl&v-uiId=0
   response = http.post(
     `${BASE_URL}/?v-r=uidl&v-uiId=${uiId}`,
-    `{"csrfToken":"${csrfToken}","rpc":[{"type":"mSync","node":${resolveNode(nodeMap, 'vaadin-date-picker#1')},"feature":1,"property":"value","value":"${inputRow.input_5}"},{"type":"event","node":${resolveNode(nodeMap, 'vaadin-date-picker#1')},"event":"value-changed","data":{}}],"syncId":${syncId},"clientId":${clientId}}`,
+    `{"csrfToken":"${csrfToken}","rpc":[{"type":"mSync","node":${resolveNode(nodeMap, 'vaadin-text-field#4')},"feature":1,"property":"value","value":"${inputRow.input_3}"},{"type":"event","node":${resolveNode(nodeMap, 'vaadin-text-field#4')},"event":"change","data":{}}],"syncId":${syncId},"clientId":${clientId}}`,
     {
       headers: {
       'Proxy-Connection': 'keep-alive',
       'sec-ch-ua-platform': '"macOS"',
-      'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/154.0.0.0 Safari/537.36',
-      'sec-ch-ua': '"Chromium";v="154", "Google Chrome";v="154", "Not A(Brand";v="99"',
+      'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36',
+      'sec-ch-ua': '"Google Chrome";v="155", "Chromium";v="155", "Not(A:Brand";v="24"',
       'Content-Type': 'application/json; charset=UTF-8',
       'sec-ch-ua-mobile': '?0',
       'Accept': '*/*',
@@ -848,6 +843,9 @@ sleep(0.5 + Math.random() * 1.5);
       tags: { name: 'edit-person: 21 POST uidl' }
     }
   )
+
+// Think time: user thinking before next action
+sleep(0.5 + Math.random() * 1.5);
 
   if (!check(response, { 'status < 400': (r) => r.status < 400 }, { name: 'edit-person: 21 POST uidl' })) {
     console.error(`edit-person: 21 POST uidl: HTTP ${response.status} ${response.url} - ${String(response.body).substring(0, 200)}`)
@@ -877,17 +875,17 @@ sleep(0.5 + Math.random() * 1.5);
   if (found) gridKeys = found.map(s => s.split('"')[3])
   nodeMap = updateNodeMap(nodeMap, response.body)
 
-  // HAR_DELTA_MS: 77
+  // HAR_DELTA_MS: 69
   // Request 22: POST http://localhost:8080/?v-r=uidl&v-uiId=0
   response = http.post(
     `${BASE_URL}/?v-r=uidl&v-uiId=${uiId}`,
-    `{"csrfToken":"${csrfToken}","rpc":[{"type":"mSync","node":${resolveNode(nodeMap, 'vaadin-text-field#2')},"feature":1,"property":"value","value":"${inputRow.input_6}"},{"type":"event","node":${resolveNode(nodeMap, 'vaadin-text-field#2')},"event":"change","data":{}}],"syncId":${syncId},"clientId":${clientId}}`,
+    `{"csrfToken":"${csrfToken}","rpc":[{"type":"mSync","node":${resolveNode(nodeMap, 'vaadin-text-field#3')},"feature":1,"property":"value","value":"${inputRow.input_4}"},{"type":"event","node":${resolveNode(nodeMap, 'vaadin-text-field#3')},"event":"change","data":{}}],"syncId":${syncId},"clientId":${clientId}}`,
     {
       headers: {
       'Proxy-Connection': 'keep-alive',
       'sec-ch-ua-platform': '"macOS"',
-      'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/154.0.0.0 Safari/537.36',
-      'sec-ch-ua': '"Chromium";v="154", "Google Chrome";v="154", "Not A(Brand";v="99"',
+      'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36',
+      'sec-ch-ua': '"Google Chrome";v="155", "Chromium";v="155", "Not(A:Brand";v="24"',
       'Content-Type': 'application/json; charset=UTF-8',
       'sec-ch-ua-mobile': '?0',
       'Accept': '*/*',
@@ -933,17 +931,17 @@ sleep(0.5 + Math.random() * 1.5);
   if (found) gridKeys = found.map(s => s.split('"')[3])
   nodeMap = updateNodeMap(nodeMap, response.body)
 
-  // HAR_DELTA_MS: 63
+  // HAR_DELTA_MS: 27
   // Request 23: POST http://localhost:8080/?v-r=uidl&v-uiId=0
   response = http.post(
     `${BASE_URL}/?v-r=uidl&v-uiId=${uiId}`,
-    `{"csrfToken":"${csrfToken}","rpc":[{"type":"mSync","node":${resolveNode(nodeMap, 'vaadin-text-field#1')},"feature":1,"property":"value","value":"${inputRow.input_7}"},{"type":"event","node":${resolveNode(nodeMap, 'vaadin-text-field#1')},"event":"change","data":{}}],"syncId":${syncId},"clientId":${clientId}}`,
+    `{"csrfToken":"${csrfToken}","rpc":[{"type":"mSync","node":${resolveNode(nodeMap, 'vaadin-date-picker#1')},"feature":1,"property":"value","value":"${inputRow.input_5}"},{"type":"event","node":${resolveNode(nodeMap, 'vaadin-date-picker#1')},"event":"value-changed","data":{}}],"syncId":${syncId},"clientId":${clientId}}`,
     {
       headers: {
       'Proxy-Connection': 'keep-alive',
       'sec-ch-ua-platform': '"macOS"',
-      'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/154.0.0.0 Safari/537.36',
-      'sec-ch-ua': '"Chromium";v="154", "Google Chrome";v="154", "Not A(Brand";v="99"',
+      'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36',
+      'sec-ch-ua': '"Google Chrome";v="155", "Chromium";v="155", "Not(A:Brand";v="24"',
       'Content-Type': 'application/json; charset=UTF-8',
       'sec-ch-ua-mobile': '?0',
       'Accept': '*/*',
@@ -957,9 +955,6 @@ sleep(0.5 + Math.random() * 1.5);
       tags: { name: 'edit-person: 23 POST uidl' }
     }
   )
-
-// Think time: user thinking before next action
-sleep(0.5 + Math.random() * 1.5);
 
   if (!check(response, { 'status < 400': (r) => r.status < 400 }, { name: 'edit-person: 23 POST uidl' })) {
     console.error(`edit-person: 23 POST uidl: HTTP ${response.status} ${response.url} - ${String(response.body).substring(0, 200)}`)
@@ -989,17 +984,17 @@ sleep(0.5 + Math.random() * 1.5);
   if (found) gridKeys = found.map(s => s.split('"')[3])
   nodeMap = updateNodeMap(nodeMap, response.body)
 
-  // HAR_DELTA_MS: 34
+  // HAR_DELTA_MS: 65
   // Request 24: POST http://localhost:8080/?v-r=uidl&v-uiId=0
   response = http.post(
     `${BASE_URL}/?v-r=uidl&v-uiId=${uiId}`,
-    `{"csrfToken":"${csrfToken}","rpc":[{"type":"mSync","node":${resolveNode(nodeMap, 'vaadin-checkbox#1')},"feature":1,"property":"checked","value":true},{"type":"event","node":${resolveNode(nodeMap, 'vaadin-checkbox#1')},"event":"checked-changed","data":{}}],"syncId":${syncId},"clientId":${clientId}}`,
+    `{"csrfToken":"${csrfToken}","rpc":[{"type":"mSync","node":${resolveNode(nodeMap, 'vaadin-text-field#2')},"feature":1,"property":"value","value":"${inputRow.input_6}"},{"type":"event","node":${resolveNode(nodeMap, 'vaadin-text-field#2')},"event":"change","data":{}}],"syncId":${syncId},"clientId":${clientId}}`,
     {
       headers: {
       'Proxy-Connection': 'keep-alive',
       'sec-ch-ua-platform': '"macOS"',
-      'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/154.0.0.0 Safari/537.36',
-      'sec-ch-ua': '"Chromium";v="154", "Google Chrome";v="154", "Not A(Brand";v="99"',
+      'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36',
+      'sec-ch-ua': '"Google Chrome";v="155", "Chromium";v="155", "Not(A:Brand";v="24"',
       'Content-Type': 'application/json; charset=UTF-8',
       'sec-ch-ua-mobile': '?0',
       'Accept': '*/*',
@@ -1013,6 +1008,9 @@ sleep(0.5 + Math.random() * 1.5);
       tags: { name: 'edit-person: 24 POST uidl' }
     }
   )
+
+// Think time: user thinking before next action
+sleep(0.5 + Math.random() * 1.5);
 
   if (!check(response, { 'status < 400': (r) => r.status < 400 }, { name: 'edit-person: 24 POST uidl' })) {
     console.error(`edit-person: 24 POST uidl: HTTP ${response.status} ${response.url} - ${String(response.body).substring(0, 200)}`)
@@ -1042,17 +1040,17 @@ sleep(0.5 + Math.random() * 1.5);
   if (found) gridKeys = found.map(s => s.split('"')[3])
   nodeMap = updateNodeMap(nodeMap, response.body)
 
-  // HAR_DELTA_MS: 47
+  // HAR_DELTA_MS: 62
   // Request 25: POST http://localhost:8080/?v-r=uidl&v-uiId=0
   response = http.post(
     `${BASE_URL}/?v-r=uidl&v-uiId=${uiId}`,
-    `{"csrfToken":"${csrfToken}","rpc":[{"type":"event","node":${resolveNode(nodeMap, 'save-button')},"event":"click","data":{"event.shiftKey":false,"event.metaKey":false,"event.detail":0,"event.ctrlKey":false,"event.clientX":0,"event.clientY":0,"event.altKey":false,"event.button":0,"event.screenY":0,"event.screenX":0}}],"syncId":${syncId},"clientId":${clientId}}`,
+    `{"csrfToken":"${csrfToken}","rpc":[{"type":"mSync","node":${resolveNode(nodeMap, 'vaadin-text-field#1')},"feature":1,"property":"value","value":"${inputRow.input_7}"},{"type":"event","node":${resolveNode(nodeMap, 'vaadin-text-field#1')},"event":"change","data":{}}],"syncId":${syncId},"clientId":${clientId}}`,
     {
       headers: {
       'Proxy-Connection': 'keep-alive',
       'sec-ch-ua-platform': '"macOS"',
-      'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/154.0.0.0 Safari/537.36',
-      'sec-ch-ua': '"Chromium";v="154", "Google Chrome";v="154", "Not A(Brand";v="99"',
+      'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36',
+      'sec-ch-ua': '"Google Chrome";v="155", "Chromium";v="155", "Not(A:Brand";v="24"',
       'Content-Type': 'application/json; charset=UTF-8',
       'sec-ch-ua-mobile': '?0',
       'Accept': '*/*',
@@ -1098,17 +1096,17 @@ sleep(0.5 + Math.random() * 1.5);
   if (found) gridKeys = found.map(s => s.split('"')[3])
   nodeMap = updateNodeMap(nodeMap, response.body)
 
-  // HAR_DELTA_MS: 91
+  // HAR_DELTA_MS: 73
   // Request 26: POST http://localhost:8080/?v-r=uidl&v-uiId=0
   response = http.post(
     `${BASE_URL}/?v-r=uidl&v-uiId=${uiId}`,
-    `{"csrfToken":"${csrfToken}","rpc":[{"type":"event","node":${resolveNode(nodeMap, 'vaadin-notification#1')},"event":"opened-changed","data":{}},{"type":"publishedEventHandler","node":${resolveNode(nodeMap, 'vaadin-grid#1')},"templateEventMethodName":"confirmUpdate","templateEventMethodArgs":[1],"promise":1}],"syncId":${syncId},"clientId":${clientId}}`,
+    `{"csrfToken":"${csrfToken}","rpc":[{"type":"event","node":${resolveNode(nodeMap, 'save-button')},"event":"click","data":{"event.shiftKey":false,"event.metaKey":false,"event.detail":0,"event.ctrlKey":false,"event.clientX":0,"event.clientY":0,"event.altKey":false,"event.button":0,"event.screenY":0,"event.screenX":0}}],"syncId":${syncId},"clientId":${clientId}}`,
     {
       headers: {
       'Proxy-Connection': 'keep-alive',
       'sec-ch-ua-platform': '"macOS"',
-      'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/154.0.0.0 Safari/537.36',
-      'sec-ch-ua': '"Chromium";v="154", "Google Chrome";v="154", "Not A(Brand";v="99"',
+      'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36',
+      'sec-ch-ua': '"Google Chrome";v="155", "Chromium";v="155", "Not(A:Brand";v="24"',
       'Content-Type': 'application/json; charset=UTF-8',
       'sec-ch-ua-mobile': '?0',
       'Accept': '*/*',
@@ -1122,6 +1120,9 @@ sleep(0.5 + Math.random() * 1.5);
       tags: { name: 'edit-person: 26 POST uidl' }
     }
   )
+
+// Think time: user thinking before next action
+sleep(0.5 + Math.random() * 1.5);
 
   if (!check(response, { 'status < 400': (r) => r.status < 400 }, { name: 'edit-person: 26 POST uidl' })) {
     console.error(`edit-person: 26 POST uidl: HTTP ${response.status} ${response.url} - ${String(response.body).substring(0, 200)}`)
@@ -1151,17 +1152,17 @@ sleep(0.5 + Math.random() * 1.5);
   if (found) gridKeys = found.map(s => s.split('"')[3])
   nodeMap = updateNodeMap(nodeMap, response.body)
 
-  // HAR_DELTA_MS: 232
+  // HAR_DELTA_MS: 37
   // Request 27: POST http://localhost:8080/?v-r=uidl&v-uiId=0
   response = http.post(
     `${BASE_URL}/?v-r=uidl&v-uiId=${uiId}`,
-    `{"csrfToken":"${csrfToken}","rpc":[{"type":"mSync","node":${resolveNode(nodeMap, 'vaadin-text-field#1')},"feature":1,"property":"value","value":"${inputRow.input_8}"},{"type":"event","node":${resolveNode(nodeMap, 'vaadin-text-field#1')},"event":"change","data":{}}],"syncId":${syncId},"clientId":${clientId}}`,
+    `{"csrfToken":"${csrfToken}","rpc":[{"type":"event","node":${resolveNode(nodeMap, 'vaadin-notification#1')},"event":"opened-changed","data":{}},{"type":"publishedEventHandler","node":${resolveNode(nodeMap, 'vaadin-grid#1')},"templateEventMethodName":"confirmUpdate","templateEventMethodArgs":[2],"promise":3}],"syncId":${syncId},"clientId":${clientId}}`,
     {
       headers: {
       'Proxy-Connection': 'keep-alive',
       'sec-ch-ua-platform': '"macOS"',
-      'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/154.0.0.0 Safari/537.36',
-      'sec-ch-ua': '"Chromium";v="154", "Google Chrome";v="154", "Not A(Brand";v="99"',
+      'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36',
+      'sec-ch-ua': '"Google Chrome";v="155", "Chromium";v="155", "Not(A:Brand";v="24"',
       'Content-Type': 'application/json; charset=UTF-8',
       'sec-ch-ua-mobile': '?0',
       'Accept': '*/*',
@@ -1169,15 +1170,12 @@ sleep(0.5 + Math.random() * 1.5);
       'Sec-Fetch-Site': 'same-origin',
       'Sec-Fetch-Mode': 'cors',
       'Sec-Fetch-Dest': 'empty',
-      'Referer': `${BASE_URL}/crud-example/4000/edit`,
+      'Referer': `${BASE_URL}/crud-example`,
       'Accept-Language': 'en-GB,en-US;q=0.9,en;q=0.8'
     },
       tags: { name: 'edit-person: 27 POST uidl' }
     }
   )
-
-// Think time: user thinking before next action
-sleep(0.5 + Math.random() * 1.5);
 
   if (!check(response, { 'status < 400': (r) => r.status < 400 }, { name: 'edit-person: 27 POST uidl' })) {
     console.error(`edit-person: 27 POST uidl: HTTP ${response.status} ${response.url} - ${String(response.body).substring(0, 200)}`)
@@ -1207,17 +1205,17 @@ sleep(0.5 + Math.random() * 1.5);
   if (found) gridKeys = found.map(s => s.split('"')[3])
   nodeMap = updateNodeMap(nodeMap, response.body)
 
-  // HAR_DELTA_MS: 58
+  // HAR_DELTA_MS: 237
   // Request 28: POST http://localhost:8080/?v-r=uidl&v-uiId=0
   response = http.post(
     `${BASE_URL}/?v-r=uidl&v-uiId=${uiId}`,
-    `{"csrfToken":"${csrfToken}","rpc":[{"type":"event","node":${resolveNode(nodeMap, 'save-button')},"event":"click","data":{"event.shiftKey":false,"event.metaKey":false,"event.detail":0,"event.ctrlKey":false,"event.clientX":0,"event.clientY":0,"event.altKey":false,"event.button":0,"event.screenY":0,"event.screenX":0}}],"syncId":${syncId},"clientId":${clientId}}`,
+    `{"csrfToken":"${csrfToken}","rpc":[{"type":"mSync","node":${resolveNode(nodeMap, 'vaadin-text-field#3')},"feature":1,"property":"value","value":"${inputRow.input_8}"},{"type":"event","node":${resolveNode(nodeMap, 'vaadin-text-field#3')},"event":"change","data":{}}],"syncId":${syncId},"clientId":${clientId}}`,
     {
       headers: {
       'Proxy-Connection': 'keep-alive',
       'sec-ch-ua-platform': '"macOS"',
-      'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/154.0.0.0 Safari/537.36',
-      'sec-ch-ua': '"Chromium";v="154", "Google Chrome";v="154", "Not A(Brand";v="99"',
+      'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36',
+      'sec-ch-ua': '"Google Chrome";v="155", "Chromium";v="155", "Not(A:Brand";v="24"',
       'Content-Type': 'application/json; charset=UTF-8',
       'sec-ch-ua-mobile': '?0',
       'Accept': '*/*',
@@ -1225,7 +1223,7 @@ sleep(0.5 + Math.random() * 1.5);
       'Sec-Fetch-Site': 'same-origin',
       'Sec-Fetch-Mode': 'cors',
       'Sec-Fetch-Dest': 'empty',
-      'Referer': `${BASE_URL}/crud-example/4000/edit`,
+      'Referer': `${BASE_URL}/crud-example/4200/edit`,
       'Accept-Language': 'en-GB,en-US;q=0.9,en;q=0.8'
     },
       tags: { name: 'edit-person: 28 POST uidl' }
@@ -1263,17 +1261,17 @@ sleep(0.5 + Math.random() * 1.5);
   if (found) gridKeys = found.map(s => s.split('"')[3])
   nodeMap = updateNodeMap(nodeMap, response.body)
 
-  // HAR_DELTA_MS: 55
+  // HAR_DELTA_MS: 51
   // Request 29: POST http://localhost:8080/?v-r=uidl&v-uiId=0
   response = http.post(
     `${BASE_URL}/?v-r=uidl&v-uiId=${uiId}`,
-    `{"csrfToken":"${csrfToken}","rpc":[{"type":"event","node":${resolveNode(nodeMap, 'vaadin-notification#2')},"event":"opened-changed","data":{}},{"type":"publishedEventHandler","node":${resolveNode(nodeMap, 'vaadin-grid#1')},"templateEventMethodName":"confirmUpdate","templateEventMethodArgs":[2],"promise":2}],"syncId":${syncId},"clientId":${clientId}}`,
+    `{"csrfToken":"${csrfToken}","rpc":[{"type":"event","node":${resolveNode(nodeMap, 'save-button')},"event":"click","data":{"event.shiftKey":false,"event.metaKey":false,"event.detail":0,"event.ctrlKey":false,"event.clientX":0,"event.clientY":0,"event.altKey":false,"event.button":0,"event.screenY":0,"event.screenX":0}}],"syncId":${syncId},"clientId":${clientId}}`,
     {
       headers: {
       'Proxy-Connection': 'keep-alive',
       'sec-ch-ua-platform': '"macOS"',
-      'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/154.0.0.0 Safari/537.36',
-      'sec-ch-ua': '"Chromium";v="154", "Google Chrome";v="154", "Not A(Brand";v="99"',
+      'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36',
+      'sec-ch-ua': '"Google Chrome";v="155", "Chromium";v="155", "Not(A:Brand";v="24"',
       'Content-Type': 'application/json; charset=UTF-8',
       'sec-ch-ua-mobile': '?0',
       'Accept': '*/*',
@@ -1281,12 +1279,15 @@ sleep(0.5 + Math.random() * 1.5);
       'Sec-Fetch-Site': 'same-origin',
       'Sec-Fetch-Mode': 'cors',
       'Sec-Fetch-Dest': 'empty',
-      'Referer': `${BASE_URL}/crud-example/4000/edit`,
+      'Referer': `${BASE_URL}/crud-example/4200/edit`,
       'Accept-Language': 'en-GB,en-US;q=0.9,en;q=0.8'
     },
       tags: { name: 'edit-person: 29 POST uidl' }
     }
   )
+
+// Think time: user thinking before next action
+sleep(0.5 + Math.random() * 1.5);
 
   if (!check(response, { 'status < 400': (r) => r.status < 400 }, { name: 'edit-person: 29 POST uidl' })) {
     console.error(`edit-person: 29 POST uidl: HTTP ${response.status} ${response.url} - ${String(response.body).substring(0, 200)}`)
@@ -1316,17 +1317,17 @@ sleep(0.5 + Math.random() * 1.5);
   if (found) gridKeys = found.map(s => s.split('"')[3])
   nodeMap = updateNodeMap(nodeMap, response.body)
 
-  // HAR_DELTA_MS: 140
+  // HAR_DELTA_MS: 34
   // Request 30: POST http://localhost:8080/?v-r=uidl&v-uiId=0
   response = http.post(
     `${BASE_URL}/?v-r=uidl&v-uiId=${uiId}`,
-    `{"csrfToken":"${csrfToken}","rpc":[{"type":"event","node":${resolveNode(nodeMap, 'delete-button')},"event":"click","data":{"event.shiftKey":false,"event.metaKey":false,"event.detail":0,"event.ctrlKey":false,"event.clientX":0,"event.clientY":0,"event.altKey":false,"event.button":0,"event.screenY":0,"event.screenX":0}}],"syncId":${syncId},"clientId":${clientId}}`,
+    `{"csrfToken":"${csrfToken}","rpc":[{"type":"event","node":${resolveNode(nodeMap, 'vaadin-notification#2')},"event":"opened-changed","data":{}},{"type":"publishedEventHandler","node":${resolveNode(nodeMap, 'vaadin-grid#1')},"templateEventMethodName":"confirmUpdate","templateEventMethodArgs":[3],"promise":4}],"syncId":${syncId},"clientId":${clientId}}`,
     {
       headers: {
       'Proxy-Connection': 'keep-alive',
       'sec-ch-ua-platform': '"macOS"',
-      'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/154.0.0.0 Safari/537.36',
-      'sec-ch-ua': '"Chromium";v="154", "Google Chrome";v="154", "Not A(Brand";v="99"',
+      'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36',
+      'sec-ch-ua': '"Google Chrome";v="155", "Chromium";v="155", "Not(A:Brand";v="24"',
       'Content-Type': 'application/json; charset=UTF-8',
       'sec-ch-ua-mobile': '?0',
       'Accept': '*/*',
@@ -1334,15 +1335,12 @@ sleep(0.5 + Math.random() * 1.5);
       'Sec-Fetch-Site': 'same-origin',
       'Sec-Fetch-Mode': 'cors',
       'Sec-Fetch-Dest': 'empty',
-      'Referer': `${BASE_URL}/crud-example/4000/edit`,
+      'Referer': `${BASE_URL}/crud-example/4200/edit`,
       'Accept-Language': 'en-GB,en-US;q=0.9,en;q=0.8'
     },
       tags: { name: 'edit-person: 30 POST uidl' }
     }
   )
-
-// Think time: user thinking before next action
-sleep(0.5 + Math.random() * 1.5);
 
   if (!check(response, { 'status < 400': (r) => r.status < 400 }, { name: 'edit-person: 30 POST uidl' })) {
     console.error(`edit-person: 30 POST uidl: HTTP ${response.status} ${response.url} - ${String(response.body).substring(0, 200)}`)
@@ -1372,17 +1370,17 @@ sleep(0.5 + Math.random() * 1.5);
   if (found) gridKeys = found.map(s => s.split('"')[3])
   nodeMap = updateNodeMap(nodeMap, response.body)
 
-  // HAR_DELTA_MS: 20
+  // HAR_DELTA_MS: 128
   // Request 31: POST http://localhost:8080/?v-r=uidl&v-uiId=0
   response = http.post(
     `${BASE_URL}/?v-r=uidl&v-uiId=${uiId}`,
-    `{"csrfToken":"${csrfToken}","rpc":[{"type":"event","node":${resolveNode(nodeMap, 'vaadin-confirm-dialog#1')},"event":"opened-changed","data":{}}],"syncId":${syncId},"clientId":${clientId}}`,
+    `{"csrfToken":"${csrfToken}","rpc":[{"type":"event","node":${resolveNode(nodeMap, 'delete-button')},"event":"click","data":{"event.shiftKey":false,"event.metaKey":false,"event.detail":0,"event.ctrlKey":false,"event.clientX":0,"event.clientY":0,"event.altKey":false,"event.button":0,"event.screenY":0,"event.screenX":0}}],"syncId":${syncId},"clientId":${clientId}}`,
     {
       headers: {
       'Proxy-Connection': 'keep-alive',
       'sec-ch-ua-platform': '"macOS"',
-      'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/154.0.0.0 Safari/537.36',
-      'sec-ch-ua': '"Chromium";v="154", "Google Chrome";v="154", "Not A(Brand";v="99"',
+      'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36',
+      'sec-ch-ua': '"Google Chrome";v="155", "Chromium";v="155", "Not(A:Brand";v="24"',
       'Content-Type': 'application/json; charset=UTF-8',
       'sec-ch-ua-mobile': '?0',
       'Accept': '*/*',
@@ -1390,12 +1388,15 @@ sleep(0.5 + Math.random() * 1.5);
       'Sec-Fetch-Site': 'same-origin',
       'Sec-Fetch-Mode': 'cors',
       'Sec-Fetch-Dest': 'empty',
-      'Referer': `${BASE_URL}/crud-example/4000/edit`,
+      'Referer': `${BASE_URL}/crud-example/4200/edit`,
       'Accept-Language': 'en-GB,en-US;q=0.9,en;q=0.8'
     },
       tags: { name: 'edit-person: 31 POST uidl' }
     }
   )
+
+// Think time: user thinking before next action
+sleep(0.5 + Math.random() * 1.5);
 
   if (!check(response, { 'status < 400': (r) => r.status < 400 }, { name: 'edit-person: 31 POST uidl' })) {
     console.error(`edit-person: 31 POST uidl: HTTP ${response.status} ${response.url} - ${String(response.body).substring(0, 200)}`)
@@ -1425,17 +1426,17 @@ sleep(0.5 + Math.random() * 1.5);
   if (found) gridKeys = found.map(s => s.split('"')[3])
   nodeMap = updateNodeMap(nodeMap, response.body)
 
-  // HAR_DELTA_MS: 49
+  // HAR_DELTA_MS: 15
   // Request 32: POST http://localhost:8080/?v-r=uidl&v-uiId=0
   response = http.post(
     `${BASE_URL}/?v-r=uidl&v-uiId=${uiId}`,
-    `{"csrfToken":"${csrfToken}","rpc":[{"type":"event","node":${resolveNode(nodeMap, 'vaadin-confirm-dialog#1')},"event":"confirm"},{"type":"mSync","node":${resolveNode(nodeMap, 'vaadin-confirm-dialog#1')},"feature":1,"property":"opened","value":false},{"type":"event","node":${resolveNode(nodeMap, 'vaadin-confirm-dialog#1')},"event":"opened-changed","data":{}}],"syncId":${syncId},"clientId":${clientId}}`,
+    `{"csrfToken":"${csrfToken}","rpc":[{"type":"event","node":${resolveNode(nodeMap, 'vaadin-confirm-dialog#1')},"event":"opened-changed","data":{}}],"syncId":${syncId},"clientId":${clientId}}`,
     {
       headers: {
       'Proxy-Connection': 'keep-alive',
       'sec-ch-ua-platform': '"macOS"',
-      'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/154.0.0.0 Safari/537.36',
-      'sec-ch-ua': '"Chromium";v="154", "Google Chrome";v="154", "Not A(Brand";v="99"',
+      'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36',
+      'sec-ch-ua': '"Google Chrome";v="155", "Chromium";v="155", "Not(A:Brand";v="24"',
       'Content-Type': 'application/json; charset=UTF-8',
       'sec-ch-ua-mobile': '?0',
       'Accept': '*/*',
@@ -1443,7 +1444,7 @@ sleep(0.5 + Math.random() * 1.5);
       'Sec-Fetch-Site': 'same-origin',
       'Sec-Fetch-Mode': 'cors',
       'Sec-Fetch-Dest': 'empty',
-      'Referer': `${BASE_URL}/crud-example/4000/edit`,
+      'Referer': `${BASE_URL}/crud-example/4200/edit`,
       'Accept-Language': 'en-GB,en-US;q=0.9,en;q=0.8'
     },
       tags: { name: 'edit-person: 32 POST uidl' }
@@ -1478,17 +1479,17 @@ sleep(0.5 + Math.random() * 1.5);
   if (found) gridKeys = found.map(s => s.split('"')[3])
   nodeMap = updateNodeMap(nodeMap, response.body)
 
-  // HAR_DELTA_MS: 52
+  // HAR_DELTA_MS: 44
   // Request 33: POST http://localhost:8080/?v-r=uidl&v-uiId=0
   response = http.post(
     `${BASE_URL}/?v-r=uidl&v-uiId=${uiId}`,
-    `{"csrfToken":"${csrfToken}","rpc":[{"type":"event","node":${resolveNode(nodeMap, 'vaadin-notification#3')},"event":"opened-changed","data":{}},{"type":"event","node":${resolveNode(nodeMap, 'vaadin-date-picker#1')},"event":"value-changed","data":{}},{"type":"event","node":${resolveNode(nodeMap, 'vaadin-checkbox#1')},"event":"checked-changed","data":{}},{"type":"publishedEventHandler","node":${resolveNode(nodeMap, 'vaadin-grid#1')},"templateEventMethodName":"confirmUpdate","templateEventMethodArgs":[3],"promise":3}],"syncId":${syncId},"clientId":${clientId}}`,
+    `{"csrfToken":"${csrfToken}","rpc":[{"type":"event","node":${resolveNode(nodeMap, 'vaadin-confirm-dialog#1')},"event":"confirm"},{"type":"mSync","node":${resolveNode(nodeMap, 'vaadin-confirm-dialog#1')},"feature":1,"property":"opened","value":false},{"type":"event","node":${resolveNode(nodeMap, 'vaadin-confirm-dialog#1')},"event":"opened-changed","data":{}}],"syncId":${syncId},"clientId":${clientId}}`,
     {
       headers: {
       'Proxy-Connection': 'keep-alive',
       'sec-ch-ua-platform': '"macOS"',
-      'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/154.0.0.0 Safari/537.36',
-      'sec-ch-ua': '"Chromium";v="154", "Google Chrome";v="154", "Not A(Brand";v="99"',
+      'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36',
+      'sec-ch-ua': '"Google Chrome";v="155", "Chromium";v="155", "Not(A:Brand";v="24"',
       'Content-Type': 'application/json; charset=UTF-8',
       'sec-ch-ua-mobile': '?0',
       'Accept': '*/*',
@@ -1496,7 +1497,7 @@ sleep(0.5 + Math.random() * 1.5);
       'Sec-Fetch-Site': 'same-origin',
       'Sec-Fetch-Mode': 'cors',
       'Sec-Fetch-Dest': 'empty',
-      'Referer': `${BASE_URL}/crud-example/4000/edit`,
+      'Referer': `${BASE_URL}/crud-example/4200/edit`,
       'Accept-Language': 'en-GB,en-US;q=0.9,en;q=0.8'
     },
       tags: { name: 'edit-person: 33 POST uidl' }
@@ -1531,17 +1532,17 @@ sleep(0.5 + Math.random() * 1.5);
   if (found) gridKeys = found.map(s => s.split('"')[3])
   nodeMap = updateNodeMap(nodeMap, response.body)
 
-  // HAR_DELTA_MS: 128
+  // HAR_DELTA_MS: 31
   // Request 34: POST http://localhost:8080/?v-r=uidl&v-uiId=0
   response = http.post(
     `${BASE_URL}/?v-r=uidl&v-uiId=${uiId}`,
-    `{"csrfToken":"${csrfToken}","rpc":[{"type":"event","node":${resolveNode(nodeMap, 'vaadin-confirm-dialog#1')},"event":"closed"}],"syncId":${syncId},"clientId":${clientId}}`,
+    `{"csrfToken":"${csrfToken}","rpc":[{"type":"event","node":${resolveNode(nodeMap, 'vaadin-notification#3')},"event":"opened-changed","data":{}},{"type":"event","node":${resolveNode(nodeMap, 'vaadin-date-picker#1')},"event":"value-changed","data":{}},{"type":"publishedEventHandler","node":${resolveNode(nodeMap, 'vaadin-grid#1')},"templateEventMethodName":"confirmUpdate","templateEventMethodArgs":[4],"promise":5}],"syncId":${syncId},"clientId":${clientId}}`,
     {
       headers: {
       'Proxy-Connection': 'keep-alive',
       'sec-ch-ua-platform': '"macOS"',
-      'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/154.0.0.0 Safari/537.36',
-      'sec-ch-ua': '"Chromium";v="154", "Google Chrome";v="154", "Not A(Brand";v="99"',
+      'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36',
+      'sec-ch-ua': '"Google Chrome";v="155", "Chromium";v="155", "Not(A:Brand";v="24"',
       'Content-Type': 'application/json; charset=UTF-8',
       'sec-ch-ua-mobile': '?0',
       'Accept': '*/*',
@@ -1549,7 +1550,7 @@ sleep(0.5 + Math.random() * 1.5);
       'Sec-Fetch-Site': 'same-origin',
       'Sec-Fetch-Mode': 'cors',
       'Sec-Fetch-Dest': 'empty',
-      'Referer': `${BASE_URL}/crud-example`,
+      'Referer': `${BASE_URL}/crud-example/4200/edit`,
       'Accept-Language': 'en-GB,en-US;q=0.9,en;q=0.8'
     },
       tags: { name: 'edit-person: 34 POST uidl' }
@@ -1572,6 +1573,59 @@ sleep(0.5 + Math.random() * 1.5);
     'valid UIDL response': () => syncIdMatch !== null,
   })) {
     fail(`Request 34 (POST http://localhost:8080/?v-r=uidl&v-uiId=0): UIDL failed (status ${response.status}): ${body.substring(0, 200)}`)
+  }
+
+  // Update Vaadin sync counters from response (-1 means UNDEFINED_SYNC_ID, treat as 0)
+  syncId = Math.max(0, parseInt(syncIdMatch[1]))
+  clientId++
+  // Extract grid item keys from response (used for select/edit operations).
+  // Anchor on object-start so only the first key in a row matches; change-record
+  // keys (e.g. type+key+value triples) are preceded by other fields and skipped.
+  var found = body.match(/\x7B"key":"[^"]+"/g)
+  if (found) gridKeys = found.map(s => s.split('"')[3])
+  nodeMap = updateNodeMap(nodeMap, response.body)
+
+  // HAR_DELTA_MS: 167
+  // Request 35: POST http://localhost:8080/?v-r=uidl&v-uiId=0
+  response = http.post(
+    `${BASE_URL}/?v-r=uidl&v-uiId=${uiId}`,
+    `{"csrfToken":"${csrfToken}","rpc":[{"type":"event","node":${resolveNode(nodeMap, 'vaadin-confirm-dialog#1')},"event":"closed"}],"syncId":${syncId},"clientId":${clientId}}`,
+    {
+      headers: {
+      'Proxy-Connection': 'keep-alive',
+      'sec-ch-ua-platform': '"macOS"',
+      'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36',
+      'sec-ch-ua': '"Google Chrome";v="155", "Chromium";v="155", "Not(A:Brand";v="24"',
+      'Content-Type': 'application/json; charset=UTF-8',
+      'sec-ch-ua-mobile': '?0',
+      'Accept': '*/*',
+      'Origin': `${BASE_URL}`,
+      'Sec-Fetch-Site': 'same-origin',
+      'Sec-Fetch-Mode': 'cors',
+      'Sec-Fetch-Dest': 'empty',
+      'Referer': `${BASE_URL}/crud-example`,
+      'Accept-Language': 'en-GB,en-US;q=0.9,en;q=0.8'
+    },
+      tags: { name: 'edit-person: 35 POST uidl' }
+    }
+  )
+
+  if (!check(response, { 'status < 400': (r) => r.status < 400 }, { name: 'edit-person: 35 POST uidl' })) {
+    console.error(`edit-person: 35 POST uidl: HTTP ${response.status} ${response.url} - ${String(response.body).substring(0, 200)}`)
+  }
+
+  // Abort iteration and trigger test abort if UIDL response is invalid
+  var body = response.body || ''
+  var syncIdMatch = body.match(/"syncId"\s*:\s*(-?\d+)/)
+  if (!check(response, {
+    'UIDL request succeeded': (r) => r.status === 200,
+    'no server error': (r) => !(r.body || '').includes('"appError"'),
+    'no exception': (r) => !(r.body || '').includes('Exception'),
+    'session is valid': (r) => !(r.body || '').includes('Your session needs to be refreshed'),
+    'security key valid': (r) => !(r.body || '').includes('Invalid security key'),
+    'valid UIDL response': () => syncIdMatch !== null,
+  })) {
+    fail(`Request 35 (POST http://localhost:8080/?v-r=uidl&v-uiId=0): UIDL failed (status ${response.status}): ${body.substring(0, 200)}`)
   }
 
   // Update Vaadin sync counters from response (-1 means UNDEFINED_SYNC_ID, treat as 0)
