@@ -4,14 +4,21 @@
 #   1. warmup: WARMUP_USERS (default: USERS) run the scenario once, so one-time costs (class loading,
 #      caches) are not counted as session memory; then all sessions are invalidated (DELETE
 #      /actuator/sessions)
-#   2. heap dump "before" (baseline, no sessions); the dump forces a full GC, so the heap then holds
-#      only live objects
+#   2. class histogram "before" (baseline, no sessions)
 #   3. USERS virtual users run the scenario once each; every user leaves one session with one UI
 #      (one browser tab) behind, which stays in memory until the session timeout (30 minutes)
-#   4. heap dump "after"
-#   5. unless CHECK_BASELINE=false: all sessions are invalidated again and heap dump "cleared";
-#      it should be about the baseline, otherwise the load built up one-time costs (caches) that
-#      the warmup did not and that are counted as session memory
+#   4. class histogram "after"
+#   5. unless CHECK_BASELINE=false: all sessions are invalidated again and class histogram
+#      "cleared"; it should be about the baseline, otherwise the load built up one-time costs
+#      (caches) that the warmup did not and that are counted as session memory
+#
+# A class histogram (jcmd GC.class_histogram) runs a full GC and sums the size of all reachable
+# objects per class: the live heap. The image is a JRE without jcmd, so jcmd runs in a JDK container
+# (JCMD_IMAGE) that shares the PID namespace of the app. Before every histogram, the script runs a
+# GC and waits IDLE_WAIT seconds (default 65): objects with a Cleaner (e.g. ZipFileSystem and its
+# buffers) are freed only by the GC after the one that found them unreachable, and Tomcat ends
+# worker threads that have been idle for 60 s, with about 100 KB of buffers each. Without this,
+# they are in some histograms and not in others.
 #
 # Memory per session = (live heap after - live heap before) / sessions after
 # CPU per run         = JVM CPU time used during step 3 / sessions after
@@ -27,18 +34,18 @@
 #
 #   loadtest/measure-session-size.sh                 # 100 users
 #   USERS=200 loadtest/measure-session-size.sh lazy  # the label is added to the result directory
-#   KEEP_DUMPS=false loadtest/measure-session-size.sh
 #   CHECK_BASELINE=false loadtest/measure-session-size.sh  # without step 5
 #
-# The results are written to results/<timestamp>[-label]/: summary.txt, the heap dumps
-# before.hprof and after.hprof (open them in VisualVM or Eclipse MAT), the k6 logs and the memory
-# under load: gc.csv (one line per GC) and container.csv (container memory over time).
+# The results are written to results/<timestamp>[-label]/: summary.txt, the class histograms
+# before.txt, after.txt and cleared.txt, the k6 logs and the memory under load: gc.csv (one line
+# per GC) and container.csv (container memory over time).
 set -euo pipefail
 
 USERS="${USERS:-100}"
 WARMUP_USERS="${WARMUP_USERS:-$USERS}"
-KEEP_DUMPS="${KEEP_DUMPS:-true}"
 CHECK_BASELINE="${CHECK_BASELINE:-true}"
+IDLE_WAIT="${IDLE_WAIT:-65}"
+JCMD_IMAGE="${JCMD_IMAGE:-eclipse-temurin:25-jdk-alpine}"
 APP_IP="${APP_IP:-localhost}"
 APP_PORT="${APP_PORT:-8080}"
 MANAGEMENT_PORT="${MANAGEMENT_PORT:-8081}"
@@ -101,14 +108,20 @@ print(int(value(total) - sum(value(get(f"{sys.argv[1]}?tag=view:{urllib.parse.qu
 EOF
 }
 
-snapshot() { # heap dump (full GC), then live heap, sessions and UIs; sets heap_, sessions_, uis_<name>
-    local file="$results/$1.hprof" heap sessions uis
-    [[ "$KEEP_DUMPS" == true ]] || file=/dev/null
-    check_app "before heap dump '$1'"
-    curl -sf -o "$file" "$actuator/heapdump?live=true" \
-        || { check_app "heap dump '$1' failed"; echo "Heap dump '$1' failed" >&2; exit 1; }
-    heap="$(metric jvm.memory.used area:heap)" && sessions="$(metric tomcat.sessions.active.current)" \
-        || { check_app "reading metrics after heap dump '$1'"; echo "Reading the metrics failed" >&2; exit 1; }
+jcmd() { # runs a jcmd command in the app, which is PID 1 in its container
+    docker run --rm --pid="container:$CONTAINER" "$JCMD_IMAGE" jcmd 1 "$@"
+}
+
+snapshot() { # class histogram (full GC), then sessions and UIs; sets heap_, sessions_, uis_<name>
+    local file="$results/$1.txt" heap sessions uis
+    jcmd GC.run > /dev/null # the Cleaners run during the wait, see above
+    sleep "$IDLE_WAIT" # until Tomcat has ended the idle worker threads
+    check_app "before class histogram '$1'"
+    jcmd GC.class_histogram > "$file" 2>&1 \
+        && heap="$(awk '$1 == "Total" { print $3 }' "$file")" && [[ -n "$heap" ]] \
+        || { check_app "class histogram '$1'"; echo "Class histogram '$1' failed, see $file" >&2; exit 1; }
+    sessions="$(metric tomcat.sessions.active.current)" \
+        || { check_app "reading metrics after class histogram '$1'"; echo "Reading the metrics failed" >&2; exit 1; }
     printf -v "heap_$1" '%s' "$heap"
     printf -v "sessions_$1" '%s' "$sessions"
     uis="$(ui_count 2>/dev/null)" || uis=-1
@@ -147,12 +160,12 @@ start_time="$(metric process.start.time)" # to detect restarts, see check_app
 echo "Warmup: $WARMUP_USERS users"
 k6run warmup "$WARMUP_USERS" -Dk6.failOnThreshold=false -Dk6.managementPort=-1
 
-echo "Invalidating the warmup sessions, heap dump before"
+echo "Invalidating the warmup sessions, class histogram before (in ${IDLE_WAIT} s)"
 invalidate_sessions
 snapshot before
 
 echo "Load: $USERS users"
-cpu_before="$(metric process.cpu.time)" # ns; read outside the heap dumps, whose full GC costs CPU
+cpu_before="$(metric process.cpu.time)" # ns; read outside the class histograms, whose full GC costs CPU
 allocated_before="$(metric jvm.gc.memory.allocated)"
 load_start="$(date +%s)"
 uptime_start="$(uptime)"
@@ -171,12 +184,12 @@ container_limit="$(docker inspect --format '{{.HostConfig.Memory}}' "$CONTAINER"
 docker logs --since "$load_start" --until "$((load_end + 1))" "$CONTAINER" 2>&1 \
     | grep '\]\[gc' > "$results/gc.log" || true
 
-echo "Heap dump after"
+echo "Class histogram after (in ${IDLE_WAIT} s)"
 snapshot after
 
 heap_cleared=-1 sessions_cleared=-1 uis_cleared=-1
 if [[ "$CHECK_BASELINE" == true ]]; then
-    echo "Invalidating the sessions, heap dump cleared"
+    echo "Invalidating the sessions, class histogram cleared (in ${IDLE_WAIT} s)"
     invalidate_sessions
     snapshot cleared
 fi
@@ -228,7 +241,7 @@ with open(f"{results}/gc.log") as log, open(f"{results}/gc.csv", "w") as out:
     out.write("uptime_s,type,heap_before_mb,heap_after_mb,heap_capacity_mb,pause_ms\n")
     for m in filter(None, map(gc_line.search, log)):
         if not uptime_start <= float(m[1]) <= uptime_end:
-            continue  # e.g. the full GC of heap dump "before" in the same second
+            continue  # e.g. the full GC of class histogram "before" in the same second
         before, after, capacity = size(m[3], m[4]), size(m[5], m[6]), size(m[7], m[8])
         gcs.append((m[2], after, float(m[9])))
         out.write(f"{m[1]},{m[2]},{mb(before):.1f},{mb(after):.1f},{mb(capacity):.1f},{m[9]}\n")
@@ -260,5 +273,21 @@ if container:
     print(f"peak container memory:     {mb(max(container)):7.1f} MB{limit}")
 else:
     print("peak container memory:         n/a  (docker stats failed, see container-samples.txt)")
+
+def histogram(name):  # {class: (instances, bytes)}
+    with open(f"{results}/{name}.txt") as file:
+        return {m[3]: (int(m[1]), int(m[2]))
+                for m in (re.match(r"\s*\d+:\s+(\d+)\s+(\d+)\s+(\S+)", line) for line in file) if m}
+
+before, after = histogram("before"), histogram("after")
+fillers = max(sum(size_ for c, (_, size_) in h.items() if c.startswith("[Ljdk.internal.vm.Filler")) for h in (before, after))
+if fillers > 1024 * 1024:
+    print(f"\nWarning: {mb(fillers):.1f} MB of filler objects (dead space) counted as live heap, the heap"
+          " was not compacted completely; start the container with the current compose.yaml")
+growth = sorted(((size_ - before.get(c, (0, 0))[1], count - before.get(c, (0, 0))[0], c)
+                 for c, (count, size_) in after.items()), reverse=True)
+print(f"\nclasses that grew most per session:  bytes  instances")
+for size_, count, name in growth[:15]:
+    print(f"  {size_ / new_sessions:10.0f} B {count / new_sessions:9.1f}  {name}")
 EOF
 echo "Results: $results"

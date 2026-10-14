@@ -8,6 +8,4 @@ drivers/
 error-screenshots/
 src/main/frontend/generated/
 src/test/k6/
-*.hprof
-heapdump
 results/

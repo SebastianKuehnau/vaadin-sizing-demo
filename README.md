@@ -5,14 +5,14 @@ the expected number of users? This project measures the session size of a small 
 Spring Boot** CRUD app under load and projects it onto a server size.
 
 1. **Measure:** k6 virtual users replay a recorded browser scenario against the app in a Docker
-   container; heap dumps before and after give the memory per session.
+   container; class histograms of the heap before and after give the memory per session.
 2. **Project:** memory per session × concurrent sessions + fixed JVM costs = server memory.
 
 ## Tech Stack
 
 * **Java 25**, **Spring Boot 4.1**, **Vaadin Flow 25.3** (Aura theme)
 * **Spring Data JPA** with an in-memory **H2** database (1,000 sample persons)
-* **Spring Boot Actuator** for heap dumps and metrics
+* **Spring Boot Actuator** for metrics, `jcmd` for class histograms of the heap
 * **Vaadin TestBench** for browser tests, Vaadin's **k6** tooling for load tests
 * **Docker** for the app with a memory limit
 
@@ -34,7 +34,7 @@ Prerequisites: Docker, [k6](https://grafana.com/docs/k6/latest/get-started/insta
 
 ```bash
 loadtest/rebuild.sh                 # build the image, (re)start the container, record the k6 script
-loadtest/measure-session-size.sh    # warmup, heap dump, 100 users, heap dump
+loadtest/measure-session-size.sh    # warmup, class histogram, 100 users, class histogram
 ```
 
 After a code change, run both again: `rebuild.sh` builds the new code and records the scenario
@@ -50,25 +50,32 @@ every virtual user leaves exactly **one session with one UI** behind.
 
 ### How the measurement works
 
-`measure-session-size.sh` (options: `USERS`, `WARMUP_USERS`, `KEEP_DUMPS`, `CHECK_BASELINE`):
+`measure-session-size.sh` (options: `USERS`, `WARMUP_USERS`, `CHECK_BASELINE`, `IDLE_WAIT`):
 
 1. **Warmup:** `WARMUP_USERS` users (default: `USERS`) run the scenario once. The first requests load classes and
    fill caches, and Tomcat creates buffers for every concurrent connection. None of this is
    session memory, so it must be in the heap before the first measurement. Then all sessions are
    invalidated (`DELETE /actuator/sessions`, which ends the Vaadin sessions and UIs, too; only in
    builds with the `loadtest` profile).
-2. **Heap dump before** (`/actuator/heapdump`): the baseline without sessions. The dump forces a
-   full GC, so afterwards the heap only holds live objects.
+2. **Class histogram before:** the baseline without sessions. `jcmd <pid> GC.class_histogram`
+   runs a full GC and sums the size of all reachable objects per class; the `Total` line is the
+   live heap.
 3. **Load:** `USERS` virtual users run the scenario once each.
-4. **Heap dump after.**
-5. **Baseline check** (off with `CHECK_BASELINE=false`): invalidate all sessions again, heap dump
-   `cleared`. It should be about the baseline; if it is higher, the load built up one-time costs
+4. **Class histogram after.**
+5. **Baseline check** (off with `CHECK_BASELINE=false`): invalidate all sessions again, class
+   histogram `cleared`. It should be about the baseline; if it is higher, the load built up one-time costs
    that the warmup did not, and they are counted as session memory.
 
 Besides the sessions, `summary.txt` shows the UIs (from the gauges of `testbench-loadtest-support`)
 and warns unless every new session has exactly one UI and no UIs are left after invalidating.
 The per-view gauge (`vaadin.view.count` with tag `view`) counts navigations, not views (3 per UI
 in this scenario), so the script subtracts it from the total.
+
+The image contains only a JRE, without `jcmd`. The script runs `jcmd` in a temporary JDK
+container (`JCMD_IMAGE`, default `eclipse-temurin:25-jdk-alpine`, same Java version as the app)
+that shares the PID namespace of the app container; the app is PID 1 there. Before every histogram
+the script runs a GC (`jcmd <pid> GC.run`) and waits `IDLE_WAIT` seconds (default 65), see
+[Things to know](#things-to-know).
 
 ```
 memory per session = (live heap after − live heap before) / sessions after
@@ -77,30 +84,60 @@ memory per session = (live heap after − live heap before) / sessions after
 Result (100 users, `results/<timestamp>/summary.txt`), on a freshly started container:
 
 ```
-                 live heap   sessions
-before             53.4 MB          0
-after              76.4 MB        100
-cleared            52.7 MB          0
+                 live heap   sessions        UIs
+before             49.1 MB          0          0
+after              72.4 MB        100        100
+cleared            49.2 MB          0          0
 
-memory per session:            235 KB  (100 new sessions)
-live heap without sessions:   53.4 MB  (baseline)
-baseline growth by load:      -0.7 MB  (cleared - before; -7 KB of the memory per session)
+memory per session:            238 KB  (100 new sessions)
+live heap without sessions:   49.1 MB  (baseline)
+baseline growth by load:       0.0 MB  (cleared - before; 0 KB of the memory per session)
 ```
 
-Six runs, each on a freshly started container, gave 233, 234, 234, 235, 238 and 239 KB per
-session; the baseline growth stayed between −0.9 and −0.2 MB.
+Five runs per number of users, each on a freshly started container:
+
+| Users | Memory per session (KB) | Mean | Baseline growth | Live heap without sessions |
+|---|---|---|---|---|
+| 50 | 242, 245, 253, 240, 245 | 245 | 0.1 – 0.7 MB | 45 – 47 MB |
+| 100 | 239, 242, 238, 239, 246 | 241 | 0.0 – 0.8 MB | 49 – 52 MB |
+| 200 | 238, 235¹, 238, 238, 238 | 237 | 0.0 – 0.1 MB | 58 – 59 MB |
+
+¹ 5 failed requests left 2 sessions without a UI (202 sessions, 200 UIs); `summary.txt` warned.
+
+The more users, the smaller the spread: a baseline growth of a few hundred KB weighs more when it
+is divided by fewer sessions. Measure with at least 100 users. The live heap without sessions
+grows with the number of users because the warmup is as large as the load (Tomcat threads and
+buffers).
 
 The warmup must be as large as the load: with only 20 warmup users, the baseline grew by 7.6 MB
 during the load, and the memory per session came out at 322 KB instead of about 240 KB (a second
 run on the then warm app gave 248 KB). If the baseline growth in `summary.txt` is more than a few
 KB per session, raise `WARMUP_USERS`.
 
-The heap dumps `before.hprof` and `after.hprof` stay in the result directory. In VisualVM or
-Eclipse MAT, the **retained size of one `com.vaadin.flow.component.UI`** is the component tree and
-data of one tab, here **186 KB**; the rest of the measured value is the session itself (Tomcat
-and Vaadin session, a few KB) and some noise. The retained size of `VaadinSession`
-is useless here (2 KB): `testbench-loadtest-support` references every UI from a global object, so
-the UIs are no longer "owned" by their session.
+The histograms `before.txt`, `after.txt` and `cleared.txt` stay in the result directory. At the
+end of `summary.txt`, the classes that grew most per session show what a session holds. Here,
+most of it is the data of the grid and the form: about 2 `SamplePerson` with 6 `Skill`, Hibernate
+collections (`PersistentBag`), `Long` IDs and the maps that hold them; the component tree is
+spread over generic classes (`Object[]`, `ArrayList`, `HashMap`, `nodefeature.*`):
+
+```
+classes that grew most per session:  bytes  instances
+       25441 B     795.0  java.util.HashMap$Node
+       19234 B     801.4  java.lang.Long
+       19200 B     600.0  org.vaadin.demo.sizing.app.data.Skill
+       17844 B     551.0  [Ljava.lang.Object;
+       16619 B     233.0  [Ljava.util.HashMap$Node;
+       14472 B     201.0  org.hibernate.collection.spi.PersistentBag
+       13725 B     571.9  java.util.ArrayList
+       11256 B     201.0  org.vaadin.demo.sizing.app.data.SamplePerson
+       ...
+```
+
+Heap dumps with the retained size of a `UI` in VisualVM or Eclipse MAT are not used: the
+retained size is misleading when UIs are reachable from shared objects (here,
+`testbench-loadtest-support` references every UI from a global object), and the tools do not
+account for compact object headers (see the Vaadin docs,
+[Capacity and Failover](https://vaadin.com/docs/latest/building-apps/architecture/capacity-and-failover)).
 
 ### Memory under load
 
@@ -124,18 +161,23 @@ extra heap per active user = (peak heap after GC − live heap after) / USERS
 In `summary.txt`, below the session size:
 
 ```
-under load (100 users at the same time, 21 s)
-peak heap after GC:          100.0 MB  (upper bound of the live heap under load)
-extra heap per active user:    237 KB  ((peak heap after GC - live heap after) / users)
-GCs:                            25     (0 full, 252 ms pauses in total, max 18 ms)
-allocated per run:            16.0 MB  (76 MB/s)
-heap committed:              232.4 MB
-non-heap used:               165.8 MB  (metaspace, code cache)
-peak container memory:       521.8 MB of 1024 MB limit
+under load (100 users at the same time, 19 s)
+peak heap after GC:           96.0 MB  (upper bound of the live heap under load)
+extra heap per active user:    242 KB  ((peak heap after GC - live heap after) / users)
+GCs:                            25     (0 full, 235 ms pauses in total, max 24 ms)
+allocated per run:            16.7 MB  (88 MB/s)
+heap committed:              241.7 MB
+non-heap used:               159.0 MB  (metaspace, code cache)
+peak container memory:       531.0 MB of 1024 MB limit
 ```
 
-In six runs, the extra heap per active user was 180–260 KB and the peak container memory
-518–533 MB. No full GC ran during the load, so the extra heap is an upper bound. All `USERS` start
+| Users | Extra heap per active user | Peak heap after GC | Peak container memory | CPU per run |
+|---|---|---|---|---|
+| 50 | 226 – 313 KB | 68 – 72 MB | 395 – 407 MB | 163 – 174 ms |
+| 100 | 224 – 272 KB | 96 – 100 MB | 525 – 542 MB | 104 – 114 ms |
+| 200 | 306 – 323 KB | 165 – 168 MB | 733 – 746 MB | 72 – 78 ms |
+
+No full GC ran during the load, so the extra heap is an upper bound. All `USERS` start
 at the same time, so they are all active during the run; the values depend on the pace of the
 scenario (think times in the k6 script).
 
@@ -143,16 +185,30 @@ scenario (think times in the k6 script).
 
 - **The sessions stay in memory.** The session timeout is Spring Boot's default of 30 minutes, so
   the number of sessions in the heap is exactly known.
-- **Take the dumps soon after the run.** k6 does not send heartbeats; Vaadin removes a UI after
+- **Take the histograms soon after the run.** k6 does not send heartbeats; Vaadin removes a UI after
   three missed heartbeats (about 15 minutes by default), and the session would look smaller.
 - **The heap must be compacted completely.** For small containers the JVM picks the serial GC,
-  whose full GC leaves up to 5 % of dead objects in the heap and compacts completely only every
-  4th time. The dead objects count as used heap and add up to ±80 KB per session of noise, so
-  `compose.yaml` sets `-XX:MarkSweepAlwaysCompactCount=1`.
+  whose full GC leaves up to 5 % of dead space in the heap and compacts completely only every 4th
+  time. It fills the dead space with filler objects (`jdk.internal.vm.FillerElement`), which the
+  class histogram counts as live heap, here 7–8 MB. `compose.yaml` therefore sets
+  `-XX:MarkSweepAlwaysCompactCount=1`; `summary.txt` warns if there are more than 1 MB of fillers.
+- **Some objects need two GCs.** Objects with a `Cleaner`, here about 60 `ZipFileSystem`s with
+  their buffers (~2 MB after 200 users), are freed only by the GC after the one that found them
+  unreachable. With a single GC, they were in the baseline but not in `cleared`, and the memory
+  per session came out about 8 KB too low (230 instead of 238 KB at 200 users). The script
+  therefore runs a GC at the start of the wait, so the Cleaners have run before the histogram.
+- **Idle worker threads end after 60 s.** Tomcat ends worker threads that have been idle for 60 s
+  (beyond the 10 spare threads), and with them their thread-local buffers, about 100 KB each
+  (1.2 MB after 100 users). Without a wait, they are in one histogram and not in the next, which
+  shifts the memory per session by up to 15 KB. The script therefore waits `IDLE_WAIT` seconds
+  before every histogram.
+- **`jvm.memory.used` is not the live heap.** Even right after a full GC it is 1–3 MB higher than
+  the histogram (space not occupied by objects), and the difference changes from GC to GC.
 - **It is the state at the end of the scenario.** A user in the middle of their work (open dialog,
   filled form) holds somewhat more. Scenarios should end in a typical state.
 - **The code decides.** The same view with the grid filled in memory (`setItems(list)`, all 1,000
-  persons) and a component column instead of the `LitRenderer`:
+  persons) and a component column instead of the `LitRenderer` (measured earlier as the retained
+  size in a heap dump, so only the ratio counts, see above):
 
   | Grid | Retained size of one UI |
   |---|---|

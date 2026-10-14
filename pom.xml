@@ -80,7 +80,7 @@
             <scope>test</scope>
         </dependency>
 
-        <!-- Heap dumps and metrics for the session size measurement (see README.md) -->
+        <!-- Metrics for the session size measurement (see README.md) -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-actuator</artifactId>
