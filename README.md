@@ -105,7 +105,7 @@ in this scenario), so the script subtracts it from the total.
 The image contains only a JRE, without `jcmd`. The script runs `jcmd` in a temporary JDK
 container (`JCMD_IMAGE`, default `eclipse-temurin:25-jdk-alpine`, same Java version as the app)
 that shares the PID namespace of the app container; the app is PID 1 there. Before every histogram
-the script runs a GC (`jcmd <pid> GC.run`) and waits `IDLE_WAIT` seconds (default 65), see
+the script runs a GC (`jcmd <pid> GC.run`) and waits `IDLE_WAIT` seconds (default 5), see
 [Things to know](#things-to-know).
 
 ```
@@ -230,9 +230,12 @@ scenario (think times in the k6 script).
   therefore runs a GC at the start of the wait, so the Cleaners have run before the histogram.
 - **Idle worker threads end after 60 s.** Tomcat ends worker threads that have been idle for 60 s
   (beyond the 10 spare threads), and with them their thread-local buffers, about 100 KB each
-  (1.2 MB after 100 users). Without a wait, they are in one histogram and not in the next, which
-  shifts the memory per session by up to 15 KB. The script therefore waits `IDLE_WAIT` seconds
-  before every histogram.
+  (1.2 MB after 100 users). If they end between two histograms, they are in one and not in the
+  next, which shifts the memory per session by up to 15 KB. The script therefore waits only
+  `IDLE_WAIT` seconds (5) before every histogram: the threads of the warmup stay alive in all
+  histograms, like in an app under load, and cancel out. This needs at least as many warmup users
+  as users (`WARMUP_USERS >= USERS`, the script warns otherwise); the threads that only the load
+  creates would be counted as session memory.
 - **`jvm.memory.used` is not the live heap.** Even right after a full GC it is 1–3 MB higher than
   the histogram (space not occupied by objects), and the difference changes from GC to GC.
 - **It is the state at the end of the scenario.** A user in the middle of their work (open dialog,

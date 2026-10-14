@@ -15,10 +15,12 @@
 # A class histogram (jcmd GC.class_histogram) runs a full GC and sums the size of all reachable
 # objects per class: the live heap. The image is a JRE without jcmd, so jcmd runs in a JDK container
 # (JCMD_IMAGE) that shares the PID namespace of the app. Before every histogram, the script runs a
-# GC and waits IDLE_WAIT seconds (default 65): objects with a Cleaner (e.g. ZipFileSystem and its
-# buffers) are freed only by the GC after the one that found them unreachable, and Tomcat ends
-# worker threads that have been idle for 60 s, with about 100 KB of buffers each. Without this,
-# they are in some histograms and not in others.
+# GC and waits IDLE_WAIT seconds (default 5): objects with a Cleaner (e.g. ZipFileSystem and its
+# buffers) are freed only by the GC after the one that found them unreachable. Tomcat ends worker
+# threads, with about 100 KB of buffers each, only after 60 s idle; with the short wait, the threads
+# of the warmup are still alive in every histogram, like in an app under load, and cancel out. So
+# the warmup needs at least as many users as the load (WARMUP_USERS >= USERS), otherwise the extra
+# threads of the load are counted as session memory.
 #
 # Memory per session = (live heap after - live heap before) / sessions after
 # CPU per run         = JVM CPU time used during step 3 / sessions after
@@ -58,7 +60,7 @@ set -euo pipefail
 USERS="${USERS:-100}"
 WARMUP_USERS="${WARMUP_USERS:-$USERS}"
 CHECK_BASELINE="${CHECK_BASELINE:-false}"
-IDLE_WAIT="${IDLE_WAIT:-65}"
+IDLE_WAIT="${IDLE_WAIT:-5}"
 JCMD_IMAGE="${JCMD_IMAGE:-eclipse-temurin:25-jdk-alpine}"
 APP_IP="${APP_IP:-localhost}"
 APP_PORT="${APP_PORT:-8080}"
@@ -95,6 +97,10 @@ else
         || echo "Warning: no GC log in the container, the heap under load is not measured." \
                 "Restart the container with the current compose.yaml: docker compose up -d" >&2
 fi
+
+[[ "$WARMUP_USERS" -ge "$USERS" ]] \
+    || echo "Warning: fewer warmup users ($WARMUP_USERS) than users ($USERS), the worker threads that" \
+            "only the load creates (about 100 KB each) are counted as session memory" >&2
 
 results="results/$(date +%Y%m%d-%H%M%S)${label:+-$label}"
 mkdir -p "$results"
@@ -155,7 +161,7 @@ jcmd() { # runs a jcmd command in the app, which is PID 1 in its container, or L
 snapshot() { # class histogram (full GC), then sessions and UIs; sets heap_, sessions_, uis_<name>
     local file="$results/$1.txt" heap sessions uis
     jcmd GC.run > /dev/null # the Cleaners run during the wait, see above
-    sleep "$IDLE_WAIT" # until Tomcat has ended the idle worker threads
+    sleep "$IDLE_WAIT"
     check_app "before class histogram '$1'"
     jcmd GC.class_histogram > "$file" 2>&1 \
         && heap="$(awk '$1 == "Total" { print $3 }' "$file")" && [[ -n "$heap" ]] \
