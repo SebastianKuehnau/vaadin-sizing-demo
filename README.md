@@ -43,8 +43,8 @@ results apart, e.g. `loadtest/measure-session-size.sh in-memory`.
 
 ### The scenario
 
-`EditPersonScenario` is one user in one browser tab: open the view, scroll to the middle of the grid, create a person, change a
-random field, save, delete the person. `loadtest:record` (`testbench-converter-plugin`) runs it
+`EditPersonScenario` is one user in one browser tab: open the view, scroll to the middle of the grid, create a person with random skills, change a
+random field (a text field or the skills), save, delete the person. `loadtest:record` (`testbench-converter-plugin`) runs it
 once in Chrome through a recording proxy and turns the traffic into the k6 script `src/test/k6/recordings/edit-person.js`. k6 replays it with any number of virtual users;
 every virtual user leaves exactly **one session with one UI** behind.
 

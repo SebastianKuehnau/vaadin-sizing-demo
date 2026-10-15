@@ -2,6 +2,7 @@ package org.vaadin.demo.sizing.it.crud;
 
 import com.vaadin.flow.component.button.testbench.ButtonElement;
 import com.vaadin.flow.component.checkbox.testbench.CheckboxElement;
+import com.vaadin.flow.component.combobox.testbench.MultiSelectComboBoxElement;
 import com.vaadin.flow.component.confirmdialog.testbench.ConfirmDialogElement;
 import com.vaadin.flow.component.datepicker.testbench.DatePickerElement;
 import com.vaadin.flow.component.grid.testbench.GridElement;
@@ -12,6 +13,7 @@ import org.junit.jupiter.api.Assertions;
 import org.vaadin.demo.sizing.it.AbstractIT;
 
 import java.time.LocalDate;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -294,6 +296,37 @@ public class CrudExampleViewIT extends AbstractIT {
             waitUntil(driver -> originalName.equals(grid.getCell(0, 0).getText()));
             assertTrue(grid.getRow(0).isSelected(), "Edited row should stay selected");
         }
+    }
+
+    @BrowserTest
+    public void testEditSkills() {
+        fillPersonForm("Skilled", "Person", "skilled@example.com",
+                "123456789", LocalDate.of(1990, 5, 5), "Developer", "Dev", false);
+        MultiSelectComboBoxElement skills = $(MultiSelectComboBoxElement.class).withCaption("Skills").waitForFirst();
+        skills.selectByText("Java");
+        skills.selectByText("Spring");
+        $(ButtonElement.class).withCaption("Save").single().click();
+        assertNotificationShown("Data updated");
+        waitForEditUrl();
+
+        // The skills are persisted: reload the edit route and read them from the backend
+        getDriver().navigate().refresh();
+        skills = $(MultiSelectComboBoxElement.class).withCaption("Skills").waitForFirst();
+        Assertions.assertEquals(Set.of("Java", "Spring"), Set.copyOf(skills.getSelectedTexts()),
+                "Saved skills should be shown in the form");
+
+        // Remove one skill and add another
+        skills.deselectByText("Spring");
+        skills.selectByText("AWS");
+        $(ButtonElement.class).withCaption("Save").single().click();
+        assertNotificationShown("Data updated");
+
+        getDriver().navigate().refresh();
+        skills = $(MultiSelectComboBoxElement.class).withCaption("Skills").waitForFirst();
+        Assertions.assertEquals(Set.of("Java", "AWS"), Set.copyOf(skills.getSelectedTexts()),
+                "Changed skills should be shown in the form");
+
+        deleteCurrentPerson();
     }
 
     @BrowserTest
