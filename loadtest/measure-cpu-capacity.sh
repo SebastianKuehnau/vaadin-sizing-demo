@@ -4,7 +4,7 @@
 #
 #   1. restarts the container with APP_CPUS cores and a short session timeout, so the sessions of
 #      the finished runs leave the heap and the memory does not limit the test
-#   2. warmup: the first rate for WARMUP_DURATION (JIT, class loading, caches)
+#   2. warmup: WARMUP_RATE runs/min for WARMUP_DURATION (JIT, class loading, caches)
 #   3. one step per rate in RATES: k6 starts the scenario at that rate for STEP_DURATION, no matter
 #      how fast the app answers (constant-arrival-rate, an open model like real users)
 #   4. stops after the first step in which the app is saturated: p95 > P95_LIMIT ms, more than 1 %
@@ -28,6 +28,7 @@ APP_MEMORY="${APP_MEMORY:-2g}"
 SESSION_TIMEOUT="${SESSION_TIMEOUT:-2m}"
 RATES="${RATES:-30 60 120 180 240 360 480 720}" # scenario runs per minute
 STEP_DURATION="${STEP_DURATION:-3m}"
+WARMUP_RATE="${WARMUP_RATE:-100}" # scenario runs per minute
 WARMUP_DURATION="${WARMUP_DURATION:-1m}"
 P95_LIMIT="${P95_LIMIT:-500}"
 APP_IP="${APP_IP:-localhost}"
@@ -93,12 +94,12 @@ curl -sf "$actuator/health" >/dev/null \
     || { echo "The app did not start, see: docker compose logs app" >&2; exit 1; }
 start_time="$(metric process.start.time)" # to detect restarts, see check_app
 
-read -r first_rate _ <<< "$RATES"
-echo "Warmup: $first_rate runs/min for $WARMUP_DURATION"
-k6run warmup "$first_rate" "$WARMUP_DURATION" -Dk6.managementPort=-1
+echo "Warmup: $WARMUP_RATE runs/min for $WARMUP_DURATION"
+k6run warmup "$WARMUP_RATE" "$WARMUP_DURATION" -Dk6.managementPort=-1
 
 {
     echo "$APP_CPUS cores, $APP_MEMORY, session timeout $SESSION_TIMEOUT, steps of $STEP_DURATION"
+    echo "warmup: $WARMUP_RATE runs/min for $WARMUP_DURATION"
     echo
     echo "runs/min  completed  dropped  failed    p95 ms  CPU/run ms  cores used  utilization"
 } | tee "$results/summary.txt"

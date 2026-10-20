@@ -321,7 +321,8 @@ APP_CPUS=1 RATES="30 60 90 120" loadtest/measure-cpu-capacity.sh 1-core
 ```
 
 It restarts the container with `APP_CPUS` cores and a session timeout of 2 minutes (otherwise
-the sessions of the finished runs fill the heap) and runs one k6 step per rate in `RATES`. In
+the sessions of the finished runs fill the heap), warms the app up with `WARMUP_RATE` runs per
+minute (100) for `WARMUP_DURATION` (1 minute) and runs one k6 step per rate in `RATES`. In
 every step, k6 starts the scenario at a fixed rate (runs per minute, `constant-arrival-rate`),
 no matter how fast the app answers, like real users. The test stops after the first step in which
 the app is saturated: p95 above `P95_LIMIT` (500 ms), more than 1 % failed requests or checks,
