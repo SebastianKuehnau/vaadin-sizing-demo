@@ -27,6 +27,28 @@ A single view at `/` (alias of `/crud-example[/<id>/edit]`): a lazy-loading grid
 ./mvnw -Pit verify      # browser tests (TestBench, needs Chrome)
 ```
 
+## 0. Demo
+
+1. build and start the app
+```bash
+./mvnw clean package -DskipTests -Ploadtest && java -jar target/vaadin-sizing-demo-1.0-SNAPSHOT.jar
+```
+
+2. record the k6 scenario
+```bash
+./mvnw loadtest:record -Ploadtest
+```
+
+3a. run the tests with k6
+```bash
+k6 run -e APP_PORT=8080 /Users/sebastian/Downloads/vaadin-sizing-demo/src/test/k6/recordings/edit-person.js
+```
+
+3b. run the tests with loadtest plugin
+```bash
+./mvnw loadtest:run -Ploadtest -Dk6.vus=100 -Dk6.duration=1m
+```
+
 ## 1. Measure the session size
 
 Prerequisites: Docker, [k6](https://grafana.com/docs/k6/latest/get-started/installation/)

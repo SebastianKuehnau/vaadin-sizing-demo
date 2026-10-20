@@ -57,10 +57,10 @@
 # per GC) and container.csv (container memory over time).
 set -euo pipefail
 
-USERS="${USERS:-100}"
-WARMUP_USERS="${WARMUP_USERS:-$USERS}"
+USERS="${USERS:-1000}"
+WARMUP_USERS="${WARMUP_USERS:-100}"
 CHECK_BASELINE="${CHECK_BASELINE:-false}"
-IDLE_WAIT="${IDLE_WAIT:-5}"
+IDLE_WAIT="${IDLE_WAIT:-10}"
 JCMD_IMAGE="${JCMD_IMAGE:-eclipse-temurin:25-jdk-alpine}"
 APP_IP="${APP_IP:-localhost}"
 APP_PORT="${APP_PORT:-8080}"
