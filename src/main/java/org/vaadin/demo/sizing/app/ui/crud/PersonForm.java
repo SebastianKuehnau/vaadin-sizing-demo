@@ -37,13 +37,13 @@ class PersonForm extends Div {
 
     private final SamplePersonService samplePersonService;
     private final SerializableConsumer<SamplePerson> onSaved;
-    private final SerializableRunnable onDeleted;
+    private final SerializableConsumer<SamplePerson> onDeleted;
     private final SerializableRunnable onCancel;
     private final BeanValidationBinder<SamplePerson> binder;
     private SamplePerson samplePerson;
 
     PersonForm(SamplePersonService samplePersonService, SerializableConsumer<SamplePerson> onSaved,
-               SerializableRunnable onDeleted, SerializableRunnable onCancel) {
+               SerializableConsumer<SamplePerson> onDeleted, SerializableRunnable onCancel) {
         this.samplePersonService = samplePersonService;
         this.onSaved = onSaved;
         this.onDeleted = onDeleted;
@@ -82,7 +82,7 @@ class PersonForm extends Div {
         dialog.addConfirmListener(event -> {
             samplePersonService.delete(personToDelete.getId());
             clearForm();
-            onDeleted.run();
+            onDeleted.accept(personToDelete);
             Notification.show("Person deleted");
         });
         dialog.open();

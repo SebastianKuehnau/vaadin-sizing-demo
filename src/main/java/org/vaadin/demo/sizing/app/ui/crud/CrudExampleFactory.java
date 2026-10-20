@@ -15,7 +15,7 @@ class CrudExampleFactory {
         this.samplePersonService = samplePersonService;
     }
 
-    PersonForm createForm(SerializableConsumer<SamplePerson> onSaved, SerializableRunnable onDeleted,
+    PersonForm createForm(SerializableConsumer<SamplePerson> onSaved, SerializableConsumer<SamplePerson> onDeleted,
                           SerializableRunnable onCancel) {
         return new PersonForm(samplePersonService, onSaved, onDeleted, onCancel);
     }

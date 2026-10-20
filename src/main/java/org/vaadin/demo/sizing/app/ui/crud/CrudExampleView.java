@@ -4,6 +4,8 @@ import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.splitlayout.SplitLayout;
 import com.vaadin.flow.router.*;
+import com.vaadin.flow.signals.Signal;
+import com.vaadin.flow.signals.shared.SharedValueSignal;
 import org.vaadin.demo.sizing.app.data.SamplePerson;
 import org.vaadin.demo.sizing.app.service.SamplePersonService;
 
@@ -18,6 +20,9 @@ public class CrudExampleView extends VerticalLayout implements BeforeEnterObserv
     static final String SAMPLEPERSON_ID = "samplePersonID";
     static final String SAMPLEPERSON_EDIT_ROUTE_TEMPLATE = "crud-example/%s/edit";
 
+    private static final SharedValueSignal<SamplePerson> CHANGED_PERSON =
+            new SharedValueSignal<>(SamplePerson.class);
+
     private final PersonGrid grid;
     private final SamplePersonService samplePersonService;
     private final PersonForm form;
@@ -27,7 +32,7 @@ public class CrudExampleView extends VerticalLayout implements BeforeEnterObserv
 
         samplePersonService = crudExampleFactory.createService();
         grid = crudExampleFactory.createGrid(this::clearForm);
-        form = crudExampleFactory.createForm(grid::refreshAndSelect, this::refreshGrid, this::refreshGrid);
+        form = crudExampleFactory.createForm(this::personSaved, this::personDeleted, this::refreshGrid);
 
         // Create UI
         SplitLayout splitLayout = new SplitLayout();
@@ -35,6 +40,25 @@ public class CrudExampleView extends VerticalLayout implements BeforeEnterObserv
         splitLayout.addToSecondary(form);
 
         add(splitLayout);
+
+        // Runs while the view is attached; tells the other sessions about a change
+        Signal.effect(this, ctx -> {
+            SamplePerson changed = CHANGED_PERSON.get();
+            if (changed != null && !ctx.isInitialRun() && ctx.isBackgroundChange()) {
+                Notification.show(String.format("%s %s has been changed by another user",
+                        changed.getFirstName(), changed.getLastName()), 3000, Notification.Position.BOTTOM_START);
+            }
+        });
+    }
+
+    private void personSaved(SamplePerson person) {
+        grid.refreshAndSelect(person);
+        CHANGED_PERSON.set(person);
+    }
+
+    private void personDeleted(SamplePerson person) {
+        refreshGrid();
+        CHANGED_PERSON.set(person);
     }
 
     private void refreshGrid() {

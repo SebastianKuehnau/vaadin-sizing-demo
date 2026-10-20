@@ -22,6 +22,14 @@ A single view at `/` (alias of `/crud-example[/<id>/edit]`): a lazy-loading grid
 (`PersonGrid`) and an editor form (`PersonForm`) in a split layout. A saved person stays selected;
 **Delete** asks for confirmation.
 
+When a person is saved or deleted, all other users with the view open get a notification. This is a
+small example of state shared across sessions: `CrudExampleView` holds a static
+`SharedValueSignal<SamplePerson>` with the last changed person. Saving or deleting writes to it, and
+an effect bound to the view shows the notification when the change came from another session
+(`isBackgroundChange()`). The sessions never reference each other, only the signal. The change is
+pushed with long polling (`@Push` on `Application`). The signal lives in one JVM, so in a cluster it
+does not reach users on other nodes.
+
 ```bash
 ./mvnw                  # development mode, http://localhost:8080
 ./mvnw -Pit verify      # browser tests (TestBench, needs Chrome)

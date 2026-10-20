@@ -9,6 +9,7 @@ import com.vaadin.flow.component.notification.testbench.NotificationElement;
 import com.vaadin.flow.component.textfield.testbench.TextFieldElement;
 import com.vaadin.testbench.BrowserTest;
 import org.junit.jupiter.api.Assertions;
+import org.openqa.selenium.WindowType;
 import org.vaadin.demo.sizing.it.AbstractIT;
 
 import java.time.LocalDate;
@@ -121,6 +122,38 @@ public class CrudExampleViewIT extends AbstractIT {
         waitUntilTrue(() -> grid.getRowCount() > rowCountBefore, "Grid should contain the new row");
         waitUntilTrue(() -> findRow(grid, firstName) >= 0, "New person should be shown in the grid");
         assertTrue(grid.getRow(findRow(grid, firstName)).isSelected(), "New person should be selected in the grid");
+
+        // Clean up
+        deleteCurrentPerson();
+    }
+
+    @BrowserTest
+    public void testOtherTabIsNotifiedAboutChange() {
+        // A second tab has its own UI, so the change reaches it as a change from outside
+        String firstTab = getDriver().getWindowHandle();
+        getDriver().switchTo().newWindow(WindowType.TAB);
+        navigateTo(getViewName());
+        String secondTab = getDriver().getWindowHandle();
+
+        // Unique name, as the tests run in parallel and also notify each other
+        getDriver().switchTo().window(firstTab);
+        String firstName = "Signal" + System.nanoTime();
+        String expectedText = firstName + " Notified has been changed by another user";
+        fillPersonForm(firstName, "Notified", "signal.notified@example.com",
+                "+49444555666", LocalDate.of(1988, 4, 4),
+                "Tester", "QA", false);
+        $(ButtonElement.class).withCaption("Save").single().click();
+        assertNotificationShown("Data updated");
+        waitForEditUrl();
+
+        getDriver().switchTo().window(secondTab);
+        assertNotificationShown(expectedText);
+        getDriver().close();
+
+        // The tab that made the change is not notified
+        getDriver().switchTo().window(firstTab);
+        assertFalse($(NotificationElement.class).all().stream().anyMatch(n -> n.getText().contains(expectedText)),
+                "The tab that saved the person should not be notified");
 
         // Clean up
         deleteCurrentPerson();
