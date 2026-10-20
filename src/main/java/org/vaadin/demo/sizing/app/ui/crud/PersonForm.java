@@ -11,7 +11,6 @@ import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.notification.NotificationVariant;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
-import com.vaadin.flow.component.combobox.MultiSelectComboBox;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.data.binder.BeanValidationBinder;
 import com.vaadin.flow.data.binder.ValidationException;
@@ -19,13 +18,7 @@ import com.vaadin.flow.function.SerializableConsumer;
 import com.vaadin.flow.function.SerializableRunnable;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.vaadin.demo.sizing.app.data.SamplePerson;
-import org.vaadin.demo.sizing.app.data.Skill;
 import org.vaadin.demo.sizing.app.service.SamplePersonService;
-
-import java.util.LinkedHashSet;
-import java.util.Set;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 class PersonForm extends Div {
 
@@ -37,7 +30,6 @@ class PersonForm extends Div {
     private final TextField occupation = new TextField("Occupation");
     private final TextField role = new TextField("Role");
     private final Checkbox important = new Checkbox("Important");
-    private final MultiSelectComboBox<String> skillNames = new MultiSelectComboBox<>("Skills");
 
     private final Button cancel = new Button("Cancel");
     private final Button save = new Button("Save");
@@ -66,8 +58,6 @@ class PersonForm extends Div {
 
         // Bind fields. This is where you'd define e.g. validation rules
         binder.bindInstanceFields(this);
-        binder.forField(skillNames).bind(PersonForm::getSkillNames, PersonForm::setSkillNames);
-        refreshSkillSuggestions();
 
         save.addClickListener(this::clickSaveButton);
         cancel.addClickListener(this::clickCancelButton);
@@ -106,7 +96,6 @@ class PersonForm extends Div {
             binder.writeBean(this.samplePerson);
             // Keep the saved person (with its new id and version) in the form
             populateForm(this.samplePersonService.save(this.samplePerson));
-            refreshSkillSuggestions();
             onSaved.accept(this.samplePerson);
             Notification.show("Data updated");
         } catch (ObjectOptimisticLockingFailureException exception) {
@@ -122,21 +111,13 @@ class PersonForm extends Div {
     private Div createFormLayout() {
 
         firstName.setRequired(true);
-        skillNames.setAllowCustomValue(true);
-        skillNames.addCustomValueSetListener(e -> {
-            String name = e.getDetail().trim();
-            if (!name.isEmpty()) {
-                skillNames.setValue(Stream.concat(skillNames.getValue().stream(), Stream.of(name))
-                        .collect(Collectors.toSet()));
-            }
-        });
         lastName.setId("lastname-field");
 
         Div editorDiv = new Div();
         editorDiv.add(
                 new FormLayout(
                         firstName, lastName, email, phone, dateOfBirth,
-                        occupation, role, important, skillNames));
+                        occupation, role, important));
 
         editorDiv.setClassName("editor");
 
@@ -157,30 +138,6 @@ class PersonForm extends Div {
 
         buttonLayout.add(save, cancel, delete);
         return buttonLayout;
-    }
-
-    private void refreshSkillSuggestions() {
-        Set<String> items = new LinkedHashSet<>(samplePersonService.skillNames());
-        items.addAll(skillNames.getValue());
-        skillNames.setItems(items);
-    }
-
-    private static Set<String> getSkillNames(SamplePerson person) {
-        return person.getSkills().stream().map(Skill::getName)
-                .collect(Collectors.toCollection(LinkedHashSet::new));
-    }
-
-    private static void setSkillNames(SamplePerson person, Set<String> names) {
-        person.getSkills().removeIf(skill -> !names.contains(skill.getName()));
-        Set<String> existing = getSkillNames(person);
-        for (String name : names) {
-            if (!existing.contains(name)) {
-                Skill skill = new Skill();
-                skill.setName(name);
-                skill.setPerson(person);
-                person.getSkills().add(skill);
-            }
-        }
     }
 
     void clearForm() {

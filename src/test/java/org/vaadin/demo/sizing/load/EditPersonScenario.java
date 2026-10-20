@@ -2,7 +2,6 @@ package org.vaadin.demo.sizing.load;
 
 import com.vaadin.flow.component.button.testbench.ButtonElement;
 import com.vaadin.flow.component.checkbox.testbench.CheckboxElement;
-import com.vaadin.flow.component.combobox.testbench.MultiSelectComboBoxElement;
 import com.vaadin.flow.component.confirmdialog.testbench.ConfirmDialogElement;
 import com.vaadin.flow.component.datepicker.testbench.DatePickerElement;
 import com.vaadin.flow.component.grid.testbench.GridElement;
@@ -16,18 +15,13 @@ import org.openqa.selenium.WebElement;
 import org.vaadin.demo.sizing.it.AbstractIT;
 
 import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Random;
-import java.util.Set;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
 /**
  * End-to-end scenario of one user in one browser tab: opens the CRUD view,
- * scrolls to the middle of the grid, creates a new person, changes a random property of it (a text field or its skills) and deletes it again.
+ * scrolls to the middle of the grid, creates a new person, changes a random text field of it and deletes it again.
  * <p>
  * The scenario only works on the person it created itself and does not click
  * on grid rows, so it can be replayed by many virtual users in parallel. * <p>
@@ -50,11 +44,6 @@ public class EditPersonScenario extends AbstractIT {
             new EditableProperty("Phone", suffix -> "+49 " + suffix),
             new EditableProperty("Occupation", suffix -> "Occupation " + suffix),
             new EditableProperty("Role", suffix -> "Role " + suffix));
-
-    /**
-     * Skills that exist in the sample data and are offered by the Skills field.
-     */
-    private static final List<String> SKILLS = List.of("Java", "Spring", "AWS", "Kubernetes");
 
     private final long seed = System.currentTimeMillis();
     private final Random random = new Random(seed);
@@ -113,8 +102,6 @@ public class EditPersonScenario extends AbstractIT {
         field("Occupation").setValue("Occupation " + suffix);
         field("Role").setValue("Role " + suffix);
         $(CheckboxElement.class).withCaption("Important").single().setChecked(random.nextBoolean());
-        Set<String> skills = assignRandomSkills();
-        System.out.println("Skills: " + skills);
 
         clickAndExpectNotification(button("Save"), "Data updated");
 
@@ -122,18 +109,10 @@ public class EditPersonScenario extends AbstractIT {
         waitUntil(driver -> driver.getCurrentUrl().endsWith("/edit"));
         Assertions.assertEquals(firstName, field("First Name").getValue(), "Saved person should stay in the form");
         Assertions.assertTrue(button("Delete").isEnabled(), "Delete should be enabled for the saved person");
-        Assertions.assertEquals(skills, skillsField().getSelectedTexts().stream().collect(Collectors.toSet()),
-                "Saved person should keep its skills");
     }
 
     private void editRandomProperty() {
-        // One more choice than text fields: the skills
-        int choice = random.nextInt(EDITABLE_PROPERTIES.size() + 1);
-        if (choice == EDITABLE_PROPERTIES.size()) {
-            editSkills();
-            return;
-        }
-        EditableProperty property = EDITABLE_PROPERTIES.get(choice);
+        EditableProperty property = EDITABLE_PROPERTIES.get(random.nextInt(EDITABLE_PROPERTIES.size()));
         TextFieldElement field = field(property.caption());
         String changedValue = property.newValue().apply(randomDigits(8));
         System.out.printf("Changing '%s': '%s' -> '%s'%n", property.caption(), field.getValue(), changedValue);
@@ -143,37 +122,6 @@ public class EditPersonScenario extends AbstractIT {
 
         Assertions.assertEquals(changedValue, field(property.caption()).getValue(),
                 "Form should show the changed " + property.caption());
-    }
-
-    private void editSkills() {
-        Set<String> skills = assignRandomSkills();
-        System.out.println("Changing skills to " + skills);
-        clickAndExpectNotification(button("Save"), "Data updated");
-
-        Assertions.assertEquals(skills, skillsField().getSelectedTexts().stream().collect(Collectors.toSet()),
-                "Form should show the changed skills");
-    }
-
-    /**
-     * Gives the person in the form 1 to 3 random skills from {@link #SKILLS}: skills that are
-     * not part of the new selection are removed, missing ones are added. Does not save.
-     *
-     * @return the skills the person has now
-     */
-    private Set<String> assignRandomSkills() {
-        MultiSelectComboBoxElement field = skillsField();
-        List<String> shuffled = new ArrayList<>(SKILLS);
-        Collections.shuffle(shuffled, random);
-        Set<String> target = new HashSet<>(shuffled.subList(0, 1 + random.nextInt(3)));
-
-        Set<String> current = new HashSet<>(field.getSelectedTexts());
-        current.stream().filter(skill -> !target.contains(skill)).forEach(field::deselectByText);
-        target.stream().filter(skill -> !current.contains(skill)).forEach(field::selectByText);
-        return target;
-    }
-
-    private MultiSelectComboBoxElement skillsField() {
-        return $(MultiSelectComboBoxElement.class).withCaption("Skills").waitForFirst();
     }
 
     private void deletePerson() {

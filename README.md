@@ -43,8 +43,8 @@ results apart, e.g. `loadtest/measure-session-size.sh in-memory`.
 
 ### The scenario
 
-`EditPersonScenario` is one user in one browser tab: open the view, scroll to the middle of the grid, create a person with random skills, change a
-random field (a text field or the skills), save, delete the person. `loadtest:record` (`testbench-converter-plugin`) runs it
+`EditPersonScenario` is one user in one browser tab: open the view, scroll to the middle of the grid, create a person, change a
+random text field, save, delete the person. `loadtest:record` (`testbench-converter-plugin`) runs it
 once in Chrome through a recording proxy and turns the traffic into the k6 script `src/test/k6/recordings/edit-person.js`. k6 replays it with any number of virtual users;
 every virtual user leaves exactly **one session with one UI** behind.
 
@@ -370,7 +370,7 @@ Things to know:
 src/main/java/org/vaadin/demo/sizing
  ├─ Application.java        # Spring Boot entry point, app shell
  └─ app
-     ├─ data/...            # entities (SamplePerson, Skill) and repositories
+     ├─ data/...            # entity (SamplePerson) and repository
      ├─ service/...         # SamplePersonService
      └─ ui/crud/...         # the view (PersonGrid + PersonForm)
 src/test/java/.../it/       # TestBench browser tests
