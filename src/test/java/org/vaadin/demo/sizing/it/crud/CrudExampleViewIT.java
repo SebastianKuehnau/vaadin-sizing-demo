@@ -9,6 +9,8 @@ import com.vaadin.flow.component.notification.testbench.NotificationElement;
 import com.vaadin.flow.component.textfield.testbench.TextFieldElement;
 import com.vaadin.testbench.BrowserTest;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.parallel.Execution;
+import org.junit.jupiter.api.parallel.ExecutionMode;
 import org.openqa.selenium.WindowType;
 import org.vaadin.demo.sizing.it.AbstractIT;
 
@@ -20,6 +22,12 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+/**
+ * The tests share the database and, through the signal in CrudExampleView, see each other's
+ * changes and notifications. TestBench runs tests in parallel by default, so these run one after
+ * another.
+ */
+@Execution(ExecutionMode.SAME_THREAD)
 public class CrudExampleViewIT extends AbstractIT {
 
     private static final Pattern EDIT_URL = Pattern.compile("/crud-example/(\\d+)/edit$");
@@ -109,7 +117,7 @@ public class CrudExampleViewIT extends AbstractIT {
         waitUntilTrue(() -> grid.getRowCount() > 0, "Grid should load its rows");
         int rowCountBefore = grid.getRowCount();
 
-        // Unique name, as the tests run in parallel and may add persons at the same time
+        // Unique name, so a leftover person of an earlier run is not found instead
         String firstName = "Grid" + System.nanoTime();
         fillPersonForm(firstName, "Newcomer", "grid.newcomer@example.com",
                 "+49111222333", LocalDate.of(1992, 7, 1),
@@ -135,7 +143,7 @@ public class CrudExampleViewIT extends AbstractIT {
         navigateTo(getViewName());
         String secondTab = getDriver().getWindowHandle();
 
-        // Unique name, as the tests run in parallel and also notify each other
+        // Unique name, so a notification of an earlier change is not taken for this one
         getDriver().switchTo().window(firstTab);
         String firstName = "Signal" + System.nanoTime();
         String expectedText = firstName + " Notified has been changed by another user";
