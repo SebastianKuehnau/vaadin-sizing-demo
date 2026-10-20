@@ -113,7 +113,7 @@ class PersonForm extends Div {
             Notification n = Notification.show(
                     "Error updating the data. Somebody else has updated the record while you were making changes.");
             n.setPosition(Notification.Position.MIDDLE);
-            n.addThemeVariants(NotificationVariant.LUMO_ERROR);
+            n.addThemeVariants(NotificationVariant.ERROR);
         } catch (ValidationException validationException) {
             Notification.show("Failed to update the data. Check again that all values are valid");
         }
@@ -146,10 +146,10 @@ class PersonForm extends Div {
     private HorizontalLayout createButtonLayout() {
         HorizontalLayout buttonLayout = new HorizontalLayout();
         buttonLayout.setClassName("button-layout");
-        cancel.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
-        save.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        cancel.addThemeVariants(ButtonVariant.TERTIARY);
+        save.addThemeVariants(ButtonVariant.TERTIARY);
 
-        delete.addThemeVariants(ButtonVariant.AURA_DANGER);
+        delete.addThemeVariants(ButtonVariant.ERROR);
 
         save.setId("save-button");
         cancel.setId("cancel-button");
