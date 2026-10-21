@@ -11,7 +11,6 @@ import com.vaadin.testbench.BrowserTest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.parallel.Execution;
 import org.junit.jupiter.api.parallel.ExecutionMode;
-import org.openqa.selenium.WindowType;
 import org.vaadin.demo.sizing.it.AbstractIT;
 
 import java.time.LocalDate;
@@ -23,9 +22,8 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * The tests share the database and, through the signal in CrudExampleView, see each other's
- * changes and notifications. TestBench runs tests in parallel by default, so these run one after
- * another.
+ * The tests share the database and see each other's changes. TestBench runs tests in parallel by
+ * default, so these run one after another.
  */
 @Execution(ExecutionMode.SAME_THREAD)
 public class CrudExampleViewIT extends AbstractIT {
@@ -130,38 +128,6 @@ public class CrudExampleViewIT extends AbstractIT {
         waitUntilTrue(() -> grid.getRowCount() > rowCountBefore, "Grid should contain the new row");
         waitUntilTrue(() -> findRow(grid, firstName) >= 0, "New person should be shown in the grid");
         assertTrue(grid.getRow(findRow(grid, firstName)).isSelected(), "New person should be selected in the grid");
-
-        // Clean up
-        deleteCurrentPerson();
-    }
-
-    @BrowserTest
-    public void testOtherTabIsNotifiedAboutChange() {
-        // A second tab has its own UI, so the change reaches it as a change from outside
-        String firstTab = getDriver().getWindowHandle();
-        getDriver().switchTo().newWindow(WindowType.TAB);
-        navigateTo(getViewName());
-        String secondTab = getDriver().getWindowHandle();
-
-        // Unique name, so a notification of an earlier change is not taken for this one
-        getDriver().switchTo().window(firstTab);
-        String firstName = "Signal" + System.nanoTime();
-        String expectedText = firstName + " Notified has been changed by another user";
-        fillPersonForm(firstName, "Notified", "signal.notified@example.com",
-                "+49444555666", LocalDate.of(1988, 4, 4),
-                "Tester", "QA", false);
-        $(ButtonElement.class).withCaption("Save").single().click();
-        assertNotificationShown("Data updated");
-        waitForEditUrl();
-
-        getDriver().switchTo().window(secondTab);
-        assertNotificationShown(expectedText);
-        getDriver().close();
-
-        // The tab that made the change is not notified
-        getDriver().switchTo().window(firstTab);
-        assertFalse($(NotificationElement.class).all().stream().anyMatch(n -> n.getText().contains(expectedText)),
-                "The tab that saved the person should not be notified");
 
         // Clean up
         deleteCurrentPerson();
