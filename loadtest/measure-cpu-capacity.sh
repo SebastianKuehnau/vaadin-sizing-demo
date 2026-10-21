@@ -4,12 +4,15 @@
 #
 #   1. restarts the container with APP_CPUS cores and a short session timeout, so the sessions of
 #      the finished runs leave the heap and the memory does not limit the test
-#   2. warmup: steps of WARMUP_STEP at WARMUP_RATE runs/min until the CPU per run of two steps in
-#      a row differs by less than WARMUP_TOLERANCE (0.10 = 10 %), at most WARMUP_MAX_STEPS steps.
-#      A fixed duration does not ensure that the JIT is done: the JVM interprets the code at first,
-#      compiles hot methods only after many calls, and the compiler threads need CPU themselves.
-#      All steps run at the same rate, otherwise the base load (metrics polling, GC) distorts the
-#      comparison. Saturation is not checked during the warmup, only logged.
+#   2. warmup: steps of WARMUP_STEP at WARMUP_RATE runs/min until the CPU per run changed by less
+#      than WARMUP_TOLERANCE (0.10 = 10 %) twice in a row, i.e. three steps in a row have about the
+#      same CPU per run (a single small change can be chance), at most WARMUP_MAX_STEPS steps; the
+#      table in summary.txt marks the step from which it is stable. A fixed duration does not ensure
+#      that the JIT is done: the JVM interprets the code at first, compiles hot methods only after
+#      many calls, and the compiler threads need CPU themselves. All steps run at the same rate,
+#      otherwise the base load (metrics polling, GC) distorts the comparison, and k6 polls the
+#      metrics (MANAGEMENT_PORT) as in the rate steps. Saturation is not checked during the warmup,
+#      only logged.
 #   3. one step per rate in RATES: k6 starts the scenario at that rate for STEP_DURATION, no matter
 #      how fast the app answers (constant-arrival-rate, an open model like real users)
 #   4. stops after the first step in which the app is saturated: p95 > P95_LIMIT ms, more than 1 %
@@ -135,24 +138,28 @@ tolerance="$(awk -v t="$WARMUP_TOLERANCE" 'BEGIN { printf "%g %%", t * 100 }')"
 } | tee "$results/summary.txt"
 
 previous=0 # CPU per run of the previous warmup step
+within=false # the change of the previous step was within the tolerance
 stable=false
 for step in $(seq 1 "$WARMUP_MAX_STEPS"); do
-    k6step "warmup-$step" "$WARMUP_RATE" "$WARMUP_STEP" -Dk6.managementPort=-1
-    # change: relative to the previous step; stable (exit 0) if it is within the tolerance
-    if awk -v step="$step" -v completed="$completed" -v dropped="$dropped" -v failed="$failed" \
+    # The metrics polling as in the rate steps, it costs CPU, too
+    k6step "warmup-$step" "$WARMUP_RATE" "$WARMUP_STEP" -Dk6.managementPort="$MANAGEMENT_PORT"
+    # change: relative to the previous step; exit 2 if it is within the tolerance, 0 (stable) if
+    # the change of the previous step was, too
+    status=0
+    awk -v step="$step" -v completed="$completed" -v dropped="$dropped" -v failed="$failed" \
         -v p95="$p95" -v cpu_per_run="$cpu_per_run" -v previous="$previous" \
-        -v tolerance="$WARMUP_TOLERANCE" 'BEGIN {
+        -v tolerance="$WARMUP_TOLERANCE" -v within_before="$within" 'BEGIN {
             printf "%4d %10d %8d %6.1f%% %9.0f %11.1f", step, completed, dropped, failed * 100, p95,
                 cpu_per_run
             if (previous == 0 || cpu_per_run == 0) { print "         –"; exit 1 }
             change = cpu_per_run / previous - 1
-            stable = change < tolerance && change > -tolerance
+            within = change < tolerance && change > -tolerance
+            stable = within && within_before == "true"
             printf " %+8.1f%%%s\n", change * 100, stable ? "   stable" : ""
-            exit stable ? 0 : 1
-        }' | tee -a "$results/summary.txt"; then
-        stable=true
-        break
-    fi
+            exit stable ? 0 : within ? 2 : 1
+        }' | tee -a "$results/summary.txt" || status=$?
+    [[ $status -eq 0 ]] && { stable=true; break; }
+    [[ $status -eq 2 ]] && within=true || within=false
     previous="$cpu_per_run"
 done
 $stable || echo "Warning: the CPU per run is not stable after $WARMUP_MAX_STEPS warmup steps, the" \

@@ -64,7 +64,7 @@ Prerequisites: Docker, [k6](https://grafana.com/docs/k6/latest/get-started/insta
 
 ```bash
 loadtest/rebuild.sh                 # build the image, (re)start the container, record the k6 script
-loadtest/measure-session-size.sh    # warmup, class histogram, 100 users (10 at a time), class histogram
+loadtest/measure-session-size.sh    # warmup, class histogram, 1,000 users (100 at a time), class histogram
 ```
 
 After a code change, run both again: `rebuild.sh` builds the new code and records the scenario
@@ -120,16 +120,21 @@ Another host or port: `k6 run -e APP_IP=192.168.1.100 -e APP_PORT=8080 …`, or
 
 ### How the measurement works
 
-`measure-session-size.sh` (options: `SCENARIO`, `USERS`, `VUS`, `MAX_DURATION`, `CHECK_BASELINE`,
-`IDLE_WAIT`; `LOCAL_PID` and `GC_LOG` measure an app started with `java -jar` instead of the
-container, see the script for the JVM options):
+`measure-session-size.sh` (options: `SCENARIO`, `USERS`, `VUS`, `MAX_LOAD_MINUTES`,
+`ROUND_SECONDS`, `CHECK_BASELINE`, `IDLE_WAIT`; `LOCAL_PID` and `GC_LOG` measure an app started
+with `java -jar` instead of the container, see the script for the JVM options):
 
-- `USERS` (default 100): the number of runs of the scenario, i.e. the sessions at the end.
+- `USERS` (default 1000): the number of runs of the scenario, i.e. the sessions at the end.
 - `VUS` (default 10 % of `USERS`, at least 10, at most `USERS`): the k6 virtual users, i.e. the
   users at the same time. They share the runs (k6 executor `shared-iterations`): a virtual user
   starts the next run when it has finished one.
-- `MAX_DURATION` (default 2 minutes per round of `VUS` runs, at least `10m`): k6 stops the
-  remaining runs after this time, e.g. `MAX_DURATION=30m`.
+- `MAX_LOAD_MINUTES` (default 10): the longest the load may take, because the UIs of the first
+  runs expire after about 15 minutes (see [Things to know](#things-to-know)). k6 stops the
+  remaining runs after this time.
+- `ROUND_SECONDS` (default 20): the estimated duration of one round of `VUS` runs (100 users at
+  the same time took about 19 s). If `ceil(USERS / VUS)` rounds take longer than
+  `MAX_LOAD_MINUTES`, the script stops before the warmup and names the minimum `VUS` for this
+  `USERS`.
 
 1. **Warmup:** `VUS` users run the scenario once each. The first requests load classes and
    fill caches, and Tomcat creates a worker thread with buffers for every concurrent request. None
@@ -150,14 +155,15 @@ container, see the script for the JVM options):
 Besides the sessions, `summary.txt` shows the UIs (from the gauges of `testbench-loadtest-support`)
 and warns unless there are `USERS` new sessions, every new session has exactly one UI and no UIs
 are left after invalidating. Fewer sessions mean failed runs or runs that k6 stopped after
-`MAX_DURATION` (see `load.log`).
+`MAX_LOAD_MINUTES` (see `load.log`). It also warns if the load took longer than
+`MAX_LOAD_MINUTES`: then UIs of the first runs may have expired.
 The per-view gauge (`vaadin.view.count` with tag `view`) counts navigations, not views (3 per UI
 in this scenario), so the script subtracts it from the total.
 
 The image contains only a JRE, without `jcmd`. The script runs `jcmd` in a temporary JDK
 container (`JCMD_IMAGE`, default `eclipse-temurin:25-jdk-alpine`, same Java version as the app)
 that shares the PID namespace of the app container; the app is PID 1 there. Before every histogram
-the script runs a GC (`jcmd <pid> GC.run`) and waits `IDLE_WAIT` seconds (default 5), see
+the script runs a GC (`jcmd <pid> GC.run`) and waits `IDLE_WAIT` seconds (default 10), see
 [Things to know](#things-to-know).
 
 ```
@@ -273,8 +279,13 @@ values depend on the pace of the scenario (think times in the k6 script).
   the number of sessions in the heap is exactly known.
 - **Take the histograms soon after the run.** k6 does not send heartbeats; Vaadin removes a UI after
   three missed heartbeats (about 15 minutes by default), and the session would look smaller. This
-  also applies to the first runs of a long load: keep the load well below 15 minutes (fewer rounds,
-  i.e. more `VUS` per `USERS`); `summary.txt` warns if there are fewer UIs than sessions.
+  also applies to the first runs of a long load, and without requests the session itself expires
+  after 30 minutes. The script therefore limits the load to `MAX_LOAD_MINUTES` (10): it stops
+  before the warmup if `ceil(USERS / VUS)` rounds of `ROUND_SECONDS` would take longer (use more
+  `VUS` per `USERS`), and `summary.txt` warns if the load took longer anyway or there are fewer UIs
+  than sessions. Alternatively, a longer heartbeat interval (`vaadin.heartbeatInterval`) and session
+  timeout (`server.servlet.session.timeout`) in the `loadtest` profile would allow longer loads;
+  the script does not do this.
 - **The heap must be compacted completely.** For small containers the JVM picks the serial GC,
   whose full GC leaves up to 5 % of dead space in the heap and compacts completely only every 4th
   time. It fills the dead space with filler objects (`jdk.internal.vm.FillerElement`), which the
@@ -289,7 +300,7 @@ values depend on the pace of the scenario (think times in the k6 script).
   about 100 KB (1.2 MB after 100 users at the same time). Tomcat ends worker threads that have been
   idle for 60 s (beyond the 10 spare threads). If they end between two histograms, they are in one
   and not in the next, which shifts the memory per session by up to 15 KB. The script therefore
-  waits only `IDLE_WAIT` seconds (5) before every histogram: the threads of the warmup stay alive
+  waits only `IDLE_WAIT` seconds (10) before every histogram: the threads of the warmup stay alive
   in all histograms, like in an app under load, and cancel out. This needs as many users at the
   same time in the warmup as in the load, so both run with `VUS` virtual users; the threads that
   only the load creates would be counted as session memory. The warmup needs only one run per
@@ -391,12 +402,15 @@ after the first step in which the app is saturated: p95 above `P95_LIMIT` (500 m
 failed requests or checks, or runs that k6 could not start because all virtual users were busy.
 
 **Warmup:** steps of `WARMUP_STEP` (1 minute) at `WARMUP_RATE` runs per minute (50) until the
-CPU per run of two steps in a row differs by less than `WARMUP_TOLERANCE` (0.10, i.e. 10 %), at
-most `WARMUP_MAX_STEPS` (10) steps; after that, `summary.txt` warns that the CPU values are not
-stable. A fixed duration does not ensure that the JIT is done: the JVM interprets the code at
-first, compiles hot methods only after many calls, and the compiler threads need CPU themselves,
-so the first runs cost more CPU than later ones. All steps run at the same rate, because at a low
-rate the base load (metrics polling, GC) distorts the CPU per run. One run takes about 15 s, so
+CPU per run changed by less than `WARMUP_TOLERANCE` (0.10, i.e. 10 %) twice in a row, i.e. three
+steps in a row have about the same CPU per run; a single small change can be chance. The table
+marks the step from which it is stable. At most `WARMUP_MAX_STEPS` (10) steps; after that,
+`summary.txt` warns that the CPU values are not stable. A fixed duration does not ensure that the
+JIT is done: the JVM interprets the code at first, compiles hot methods only after many calls, and
+the compiler threads need CPU themselves, so the first runs cost more CPU than later ones. The
+warmup runs under the same conditions as the rate steps: all steps run at the same rate, because
+at a low rate the base load (metrics polling, GC) distorts the CPU per run, and k6 polls the
+metrics (`MANAGEMENT_PORT`) in both, as the polling costs CPU, too. One run takes about 15 s, so
 shorter steps complete too few runs. Saturation is not checked during the warmup, only logged.
 
 Result (`results/<timestamp>-cpu/summary.txt`), first the warmup, then the rate steps:
@@ -406,7 +420,8 @@ warmup: 50 runs/min, steps of 1m, tolerance 10 %
 step  completed  dropped  failed    p95 ms  CPU/run ms    change
    1         48        0    0.0%        31       412.3         –
    2         50        0    0.0%        24       198.7    -51.8%
-   3         50        0    0.0%        23       184.2     -7.3%   stable
+   3         50        0    0.0%        23       184.2     -7.3%
+   4         50        0    0.0%        22       179.6     -2.5%   stable
 
 scenario: edit-person
 12 cores, 2g, session timeout 2m, steps of 30s
