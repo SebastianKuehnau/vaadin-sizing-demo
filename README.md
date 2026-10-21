@@ -362,23 +362,41 @@ APP_CPUS=1 RATES="30 60 90 120" loadtest/measure-cpu-capacity.sh 1-core
 ```
 
 It restarts the container with `APP_CPUS` cores and a session timeout of 2 minutes (otherwise
-the sessions of the finished runs fill the heap), warms the app up with `WARMUP_RATE` runs per
-minute (100) for `WARMUP_DURATION` (1 minute) and runs one k6 step per rate in `RATES`. In
-every step, k6 starts the scenario at a fixed rate (runs per minute, `constant-arrival-rate`),
-no matter how fast the app answers, like real users. The test stops after the first step in which
-the app is saturated: p95 above `P95_LIMIT` (500 ms), more than 1 % failed requests or checks,
-or runs that k6 could not start because all virtual users were busy.
+the sessions of the finished runs fill the heap), warms the app up and runs one k6 step per rate
+in `RATES`. In every step, k6 starts the scenario at a fixed rate (runs per minute,
+`constant-arrival-rate`), no matter how fast the app answers, like real users. The test stops
+after the first step in which the app is saturated: p95 above `P95_LIMIT` (500 ms), more than 1 %
+failed requests or checks, or runs that k6 could not start because all virtual users were busy.
 
-Result (`results/<timestamp>-cpu/summary.txt`):
+**Warmup:** steps of `WARMUP_STEP` (1 minute) at `WARMUP_RATE` runs per minute (50) until the
+CPU per run of two steps in a row differs by less than `WARMUP_TOLERANCE` (0.10, i.e. 10 %), at
+most `WARMUP_MAX_STEPS` (10) steps; after that, `summary.txt` warns that the CPU values are not
+stable. A fixed duration does not ensure that the JIT is done: the JVM interprets the code at
+first, compiles hot methods only after many calls, and the compiler threads need CPU themselves,
+so the first runs cost more CPU than later ones. All steps run at the same rate, because at a low
+rate the base load (metrics polling, GC) distorts the CPU per run. One run takes about 15 s, so
+shorter steps complete too few runs. Saturation is not checked during the warmup, only logged.
+
+Result (`results/<timestamp>-cpu/summary.txt`), first the warmup, then the rate steps:
 
 ```
+warmup: 50 runs/min, steps of 1m, tolerance 10 %
+step  completed  dropped  failed    p95 ms  CPU/run ms    change
+   1         48        0    0.0%        31       412.3         –
+   2         50        0    0.0%        24       198.7    -51.8%
+   3         50        0    0.0%        23       184.2     -7.3%   stable
+
+scenario: edit-person
+12 cores, 2g, session timeout 2m, steps of 30s
+
 runs/min  completed  dropped  failed    p95 ms  CPU/run ms  cores used  utilization
       30         16        0   0.0%        26       384.8        0.19           2%
      240        120        0   0.0%        13       175.2        0.70           6%
     2000       1000        0   0.0%         5        51.8        1.73          14%
 ```
 
-(A short test run with 30 s steps on 12 cores, not a reference measurement.)
+(The rate steps are from a short test run with 30 s steps on 12 cores, not a reference
+measurement; the warmup steps only show the format.)
 
 **cores used** = CPU per run × runs per second. At low rates, the CPU per run is too high: the
 JIT compiler, the GC and the metrics polling need CPU even without users, and it is spread over

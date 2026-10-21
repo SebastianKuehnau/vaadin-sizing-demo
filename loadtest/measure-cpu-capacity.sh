@@ -4,14 +4,20 @@
 #
 #   1. restarts the container with APP_CPUS cores and a short session timeout, so the sessions of
 #      the finished runs leave the heap and the memory does not limit the test
-#   2. warmup: WARMUP_RATE runs/min for WARMUP_DURATION (JIT, class loading, caches)
+#   2. warmup: steps of WARMUP_STEP at WARMUP_RATE runs/min until the CPU per run of two steps in
+#      a row differs by less than WARMUP_TOLERANCE (0.10 = 10 %), at most WARMUP_MAX_STEPS steps.
+#      A fixed duration does not ensure that the JIT is done: the JVM interprets the code at first,
+#      compiles hot methods only after many calls, and the compiler threads need CPU themselves.
+#      All steps run at the same rate, otherwise the base load (metrics polling, GC) distorts the
+#      comparison. Saturation is not checked during the warmup, only logged.
 #   3. one step per rate in RATES: k6 starts the scenario at that rate for STEP_DURATION, no matter
 #      how fast the app answers (constant-arrival-rate, an open model like real users)
 #   4. stops after the first step in which the app is saturated: p95 > P95_LIMIT ms, more than 1 %
 #      failed requests, or k6 could not start all runs (all VUs busy)
 #
-# Per step: CPU per run = JVM CPU time / completed runs, cores used = CPU per run × runs per second.
-# k6 lets all started runs finish, so the CPU time covers exactly the completed runs.
+# Per step (warmup and rates): CPU per run = JVM CPU time / completed runs, cores used = CPU per
+# run × runs per second. k6 lets all started runs finish, so the CPU time covers exactly the
+# completed runs.
 #
 #   loadtest/measure-cpu-capacity.sh                                 # 2 cores
 #   APP_CPUS=1 RATES="30 60 90 120" loadtest/measure-cpu-capacity.sh 1-core
@@ -20,8 +26,8 @@
 # The container keeps running with these settings; restart it with docker compose up -d for the
 # session size measurement (it needs the default session timeout of 30 minutes).
 #
-# The results are written to results/<timestamp>-cpu[-label]/: summary.txt and per step the k6
-# log and the k6 report (HTML and JSON).
+# The results are written to results/<timestamp>-cpu[-label]/: summary.txt (the warmup steps, then
+# the rate steps) and per step the k6 log and the k6 report (HTML and JSON).
 set -euo pipefail
 
 APP_CPUS="${APP_CPUS:-2.0}"
@@ -30,7 +36,9 @@ SESSION_TIMEOUT="${SESSION_TIMEOUT:-2m}"
 RATES="${RATES:-50 100 50}" # scenario runs per minute
 STEP_DURATION="${STEP_DURATION:-1m}"
 WARMUP_RATE="${WARMUP_RATE:-50}" # scenario runs per minute
-WARMUP_DURATION="${WARMUP_DURATION:-1m}"
+WARMUP_STEP="${WARMUP_STEP:-1m}" # one run takes ~15 s, shorter steps complete too few runs
+WARMUP_TOLERANCE="${WARMUP_TOLERANCE:-0.10}" # max. relative change of the CPU per run
+WARMUP_MAX_STEPS="${WARMUP_MAX_STEPS:-10}"
 P95_LIMIT="${P95_LIMIT:-500}"
 SCENARIO="${SCENARIO:-edit-person}" # the k6 script src/test/k6/recordings/<SCENARIO>.js
 APP_IP="${APP_IP:-localhost}"
@@ -85,6 +93,29 @@ k6run() { # k6run <name> <runs per minute> <duration> [extra arguments]
     check_app "during k6 run '$name', see $results/$name.log"
 }
 
+k6step() { # k6step <name> <runs per minute> <duration> [extra arguments]: k6run, then sets
+    # completed, dropped, failed, p95 and cpu_per_run (ms) from the k6 summary and the JVM CPU time
+    local cpu_before cpu_after stats
+    cpu_before="$(metric process.cpu.time)"
+    k6run "$@"
+    cpu_after="$(metric process.cpu.time)"
+    stats="$(python3 - "$results/$1-report"/*-summary.json "$cpu_before" "$cpu_after" <<'EOF'
+import json, sys
+summary_file, cpu_before, cpu_after = sys.argv[1:]
+metrics = json.load(open(summary_file))["metrics"]
+value = lambda metric, stat, default=0: metrics.get(metric, {}).get("values", {}).get(stat, default)
+completed = int(value("iterations", "count"))
+dropped = int(value("dropped_iterations", "count"))
+failed = max(value("http_req_failed", "rate"), 1 - value("checks", "rate", 1))
+p95 = value("http_req_duration", "p(95)")
+# The JVM CPU time also includes the idle app during the Maven start, which is negligible
+cpu_per_run = (int(cpu_after) - int(cpu_before)) / 1e6 / completed if completed else 0
+print(completed, dropped, failed, p95, cpu_per_run)
+EOF
+)"
+    read -r completed dropped failed p95 cpu_per_run <<< "$stats"
+}
+
 echo "Restarting the container: $APP_CPUS cores, $APP_MEMORY, session timeout $SESSION_TIMEOUT"
 APP_CPUS="$APP_CPUS" APP_MEMORY="$APP_MEMORY" \
     APP_JAVA_OPTS="-Dserver.servlet.session.timeout=$SESSION_TIMEOUT ${APP_JAVA_OPTS:-}" \
@@ -97,42 +128,57 @@ curl -sf "$actuator/health" >/dev/null \
     || { echo "The app did not start, see: docker compose logs app" >&2; exit 1; }
 start_time="$(metric process.start.time)" # to detect restarts, see check_app
 
-echo "Warmup: $WARMUP_RATE runs/min for $WARMUP_DURATION"
-k6run warmup "$WARMUP_RATE" "$WARMUP_DURATION" -Dk6.managementPort=-1
-
+tolerance="$(awk -v t="$WARMUP_TOLERANCE" 'BEGIN { printf "%g %%", t * 100 }')"
 {
-    echo "scenario: $SCENARIO"
-    echo "$APP_CPUS cores, $APP_MEMORY, session timeout $SESSION_TIMEOUT, steps of $STEP_DURATION"
-    echo "warmup: $WARMUP_RATE runs/min for $WARMUP_DURATION"
-    echo
-    echo "runs/min  completed  dropped  failed    p95 ms  CPU/run ms  cores used  utilization"
+    echo "warmup: $WARMUP_RATE runs/min, steps of $WARMUP_STEP, tolerance $tolerance"
+    echo "step  completed  dropped  failed    p95 ms  CPU/run ms    change"
 } | tee "$results/summary.txt"
 
+previous=0 # CPU per run of the previous warmup step
+stable=false
+for step in $(seq 1 "$WARMUP_MAX_STEPS"); do
+    k6step "warmup-$step" "$WARMUP_RATE" "$WARMUP_STEP" -Dk6.managementPort=-1
+    # change: relative to the previous step; stable (exit 0) if it is within the tolerance
+    if awk -v step="$step" -v completed="$completed" -v dropped="$dropped" -v failed="$failed" \
+        -v p95="$p95" -v cpu_per_run="$cpu_per_run" -v previous="$previous" \
+        -v tolerance="$WARMUP_TOLERANCE" 'BEGIN {
+            printf "%4d %10d %8d %6.1f%% %9.0f %11.1f", step, completed, dropped, failed * 100, p95,
+                cpu_per_run
+            if (previous == 0 || cpu_per_run == 0) { print "         –"; exit 1 }
+            change = cpu_per_run / previous - 1
+            stable = change < tolerance && change > -tolerance
+            printf " %+8.1f%%%s\n", change * 100, stable ? "   stable" : ""
+            exit stable ? 0 : 1
+        }' | tee -a "$results/summary.txt"; then
+        stable=true
+        break
+    fi
+    previous="$cpu_per_run"
+done
+$stable || echo "Warning: the CPU per run is not stable after $WARMUP_MAX_STEPS warmup steps, the" \
+    "CPU values below are too high (JIT not done?). Use a higher WARMUP_MAX_STEPS." \
+    | tee -a "$results/summary.txt"
+
+{
+    echo
+    echo "scenario: $SCENARIO"
+    echo "$APP_CPUS cores, $APP_MEMORY, session timeout $SESSION_TIMEOUT, steps of $STEP_DURATION"
+    echo
+    echo "runs/min  completed  dropped  failed    p95 ms  CPU/run ms  cores used  utilization"
+} | tee -a "$results/summary.txt"
+
 for rate in $RATES; do
-    cpu_before="$(metric process.cpu.time)"
-    k6run "rate-$rate" "$rate" "$STEP_DURATION" -Dk6.managementPort="$MANAGEMENT_PORT"
-    cpu_after="$(metric process.cpu.time)"
+    k6step "rate-$rate" "$rate" "$STEP_DURATION" -Dk6.managementPort="$MANAGEMENT_PORT"
 
     status=0
-    python3 - "$results/rate-$rate-report"/*-summary.json "$rate" "$cpu_before" "$cpu_after" "$APP_CPUS" \
-        "$P95_LIMIT" > "$results/rate-$rate.txt" <<'EOF' || status=$?
-import json, sys
-summary_file, rate, cpu_before, cpu_after, cpus, p95_limit = sys.argv[1:]
-data = json.load(open(summary_file))
-metrics = data["metrics"]
-value = lambda metric, stat, default=0: metrics.get(metric, {}).get("values", {}).get(stat, default)
-completed = int(value("iterations", "count"))
-dropped = int(value("dropped_iterations", "count"))
-failed = max(value("http_req_failed", "rate"), 1 - value("checks", "rate", 1))
-p95 = value("http_req_duration", "p(95)")
-# The JVM CPU time also includes the idle app during the Maven start, which is negligible
-cpu_per_run = (int(cpu_after) - int(cpu_before)) / 1e6 / completed if completed else 0
-cores = cpu_per_run / 1000 * int(rate) / 60
-print(f"{int(rate):8d} {completed:10d} {dropped:8d} {failed:6.1%} {p95:9.0f} {cpu_per_run:11.1f}"
-      f" {cores:11.2f} {cores / float(cpus):12.0%}")
-saturated = p95 > float(p95_limit) or failed > 0.01 or dropped > 0
-sys.exit(3 if saturated else 0)
-EOF
+    awk -v rate="$rate" -v completed="$completed" -v dropped="$dropped" -v failed="$failed" \
+        -v p95="$p95" -v cpu_per_run="$cpu_per_run" -v cpus="$APP_CPUS" -v p95_limit="$P95_LIMIT" \
+        'BEGIN {
+            cores = cpu_per_run / 1000 * rate / 60
+            printf "%8d %10d %8d %5.1f%% %9.0f %11.1f %11.2f %11.0f%%\n", rate, completed, dropped,
+                failed * 100, p95, cpu_per_run, cores, cores / cpus * 100
+            exit (p95 > p95_limit || failed > 0.01 || dropped > 0) ? 3 : 0
+        }' > "$results/rate-$rate.txt" || status=$?
     tee -a "$results/summary.txt" < "$results/rate-$rate.txt"
     [[ $status -eq 0 ]] || {
         [[ $status -eq 3 ]] || exit "$status"
