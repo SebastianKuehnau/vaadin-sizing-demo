@@ -75,7 +75,7 @@ public class EditPersonScenario extends AbstractIT {
     }
 
     private void scrollToMiddleOfGrid() {
-        GridElement grid = $(GridElement.class).waitForFirst();
+        GridElement grid = $(GridElement.class).waitForSingle();
         int middleRow = grid.getRowCount() / 2;
         System.out.println("Scrolling grid to row " + middleRow);
 
