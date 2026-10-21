@@ -17,7 +17,7 @@
 # A class histogram (jcmd GC.class_histogram) runs a full GC and sums the size of all reachable
 # objects per class: the live heap. The image is a JRE without jcmd, so jcmd runs in a JDK container
 # (JCMD_IMAGE) that shares the PID namespace of the app. Before every histogram, the script runs a
-# GC and waits IDLE_WAIT seconds (default 5): objects with a Cleaner (e.g. ZipFileSystem and its
+# GC and waits IDLE_WAIT seconds (default 10): objects with a Cleaner (e.g. ZipFileSystem and its
 # buffers) are freed only by the GC after the one that found them unreachable. Tomcat creates as
 # many worker threads, with about 100 KB of buffers each, as requests run at the same time, and
 # ends them only after 60 s idle; with the short wait, the threads of the warmup are still alive in
@@ -37,14 +37,18 @@
 #
 # The CPU per run is the basis for the number of cores, see loadtest/measure-cpu-capacity.sh.
 #
-# USERS is the number of sessions at the end (default 100), VUS the number of users at the same
-# time (default 10 % of USERS, at least 10, at most USERS). k6 stops a run after MAX_DURATION
-# (default 2 minutes per round of VUS runs, at least 10 minutes); then there are fewer sessions
-# than USERS and summary.txt warns.
+# USERS is the number of sessions at the end (default 1000), VUS the number of users at the same
+# time (default 10 % of USERS, at least 10, at most USERS). k6 sends no heartbeats: Vaadin removes
+# a UI after three missed heartbeats (about 15 minutes), so the load must end well before the UIs of
+# the first runs expire. It runs in rounds of VUS runs; if ceil(USERS / VUS) rounds of ROUND_SECONDS
+# (default 20, an estimate; 100 users at the same time took about 19 s) take longer than
+# MAX_LOAD_MINUTES (default 10), the script stops before the warmup and names the minimum VUS. k6
+# stops the remaining runs after MAX_LOAD_MINUTES; then there are fewer sessions than USERS and
+# summary.txt warns. It also warns if the load took longer than MAX_LOAD_MINUTES.
 #
-#   loadtest/measure-session-size.sh                 # 100 users, 10 at the same time
+#   loadtest/measure-session-size.sh                 # 1,000 users, 100 at the same time
 #   USERS=200 loadtest/measure-session-size.sh lazy  # the label is added to the result directory
-#   USERS=1000 VUS=100 loadtest/measure-session-size.sh   # 1,000 sessions, 100 users at the same time
+#   USERS=100 loadtest/measure-session-size.sh quick # 100 sessions, 10 users at the same time
 #   CHECK_BASELINE=true loadtest/measure-session-size.sh   # with step 5
 #   SCENARIO=hello-world loadtest/measure-session-size.sh hello   # the other k6 script
 #
@@ -67,10 +71,11 @@
 # per GC) and container.csv (container memory over time).
 set -euo pipefail
 
-USERS="${USERS:-100}"
+USERS="${USERS:-1000}"
 default_vus=$(( USERS / 10 < 10 ? 10 : USERS / 10 ))
 VUS="${VUS:-$(( default_vus < USERS ? default_vus : USERS ))}"
-MAX_DURATION="${MAX_DURATION:-$(( (USERS + VUS - 1) / VUS * 2 < 10 ? 10 : (USERS + VUS - 1) / VUS * 2 ))m}"
+export MAX_LOAD_MINUTES="${MAX_LOAD_MINUTES:-10}" # also read by the summary
+ROUND_SECONDS="${ROUND_SECONDS:-20}" # one round of VUS runs, 100 users at the same time took ~19 s
 CHECK_BASELINE="${CHECK_BASELINE:-false}"
 SCENARIO="${SCENARIO:-edit-person}" # the k6 script src/test/k6/recordings/<SCENARIO>.js
 IDLE_WAIT="${IDLE_WAIT:-10}"
@@ -114,6 +119,23 @@ fi
 [[ "$VUS" -ge 1 && "$VUS" -le "$USERS" ]] \
     || { echo "VUS ($VUS) must be between 1 and USERS ($USERS): k6 cannot share fewer runs than" \
               "virtual users" >&2; exit 1; }
+
+# k6 sends no heartbeats: Vaadin removes a UI after three missed heartbeats (~15 minutes), so the
+# UIs of the first runs must still be there at class histogram "after"
+rounds=$(( (USERS + VUS - 1) / VUS ))
+max_rounds=$(( MAX_LOAD_MINUTES * 60 / ROUND_SECONDS ))
+(( rounds * ROUND_SECONDS <= MAX_LOAD_MINUTES * 60 )) || {
+    echo "The load takes about $(( rounds * ROUND_SECONDS )) s ($rounds rounds of $VUS runs, ROUND_SECONDS" \
+         "$ROUND_SECONDS s each), more than MAX_LOAD_MINUTES ($MAX_LOAD_MINUTES): the UIs of the first" \
+         "runs would expire before the class histogram, k6 sends no heartbeats." >&2
+    if (( max_rounds > 0 )); then
+        echo "Use VUS=$(( (USERS + max_rounds - 1) / max_rounds )) or more for USERS=$USERS." >&2
+    else
+        echo "Even one round takes longer, raise MAX_LOAD_MINUTES." >&2
+    fi
+    exit 1
+}
+max_duration="${MAX_LOAD_MINUTES}m" # k6 stops the remaining runs after this time
 
 results="results/$(date +%Y%m%d-%H%M%S)${label:+-$label}"
 mkdir -p "$results"
@@ -194,7 +216,7 @@ k6run() { # k6run <name> <vus> <iterations> [extra arguments]: vus users share t
     ./mvnw -Ploadtest loadtest:run \
         -Dk6.testFile="$recordings/$SCENARIO.js" \
         -Dk6.executor=shared-iterations -Dk6.vus="$vus" -Dk6.iterations="$iterations" \
-        -Dk6.duration="$MAX_DURATION" \
+        -Dk6.duration="$max_duration" \
         -Dk6.appIp="$APP_IP" -Dk6.appPort="$APP_PORT" "$@" > "$results/$name.log" 2>&1 \
         || { echo "k6 run '$name' failed, see $results/$name.log" >&2; exit 1; }
     [[ -d "$recordings/report" ]] && mv "$recordings/report" "$results/$name-report"
@@ -230,7 +252,7 @@ echo "Invalidating the warmup sessions, class histogram before (in ${IDLE_WAIT} 
 invalidate_sessions
 snapshot before
 
-echo "Load: $USERS runs, $VUS users at the same time (at most $MAX_DURATION)"
+echo "Load: $USERS runs, $VUS users at the same time (at most $max_duration)"
 cpu_before="$(metric process.cpu.time)" # ns; read outside the class histograms, whose full GC costs CPU
 allocated_before="$(metric jvm.gc.memory.allocated)"
 load_start="$(date +%s)"
@@ -304,7 +326,12 @@ if new_sessions <= 0:
     print("No new sessions, check the k6 log"); sys.exit(1)
 if new_sessions != users:
     print(f"Warning: {new_sessions} new sessions instead of {users} (USERS): runs failed, shared a session"
-          " or were stopped after MAX_DURATION, see load.log")
+          " or were stopped after MAX_LOAD_MINUTES, see load.log")
+max_load_minutes = int(os.environ["MAX_LOAD_MINUTES"])
+if load_end - load_start > max_load_minutes * 60:
+    print(f"Warning: the load took {load_end - load_start} s, more than MAX_LOAD_MINUTES ({max_load_minutes}):"
+          " k6 sends no heartbeats, so UIs of the first runs may have expired (after about 15 minutes)"
+          " and the sessions look smaller; use more VUS")
 per_session = (heap_after - heap_before) / new_sessions
 print(f"\nmemory per session:        {per_session / 1024:7.0f} KB  ({new_sessions} new sessions)")
 print(f"live heap without sessions: {mb(heap_before):6.1f} MB  (baseline)")
