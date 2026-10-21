@@ -64,7 +64,7 @@ Prerequisites: Docker, [k6](https://grafana.com/docs/k6/latest/get-started/insta
 
 ```bash
 loadtest/rebuild.sh                 # build the image, (re)start the container, record the k6 script
-loadtest/measure-session-size.sh    # warmup, class histogram, 100 users, class histogram
+loadtest/measure-session-size.sh    # warmup, class histogram, 100 users (10 at a time), class histogram
 ```
 
 After a code change, run both again: `rebuild.sh` builds the new code and records the scenario
@@ -120,26 +120,37 @@ Another host or port: `k6 run -e APP_IP=192.168.1.100 -e APP_PORT=8080 …`, or
 
 ### How the measurement works
 
-`measure-session-size.sh` (options: `SCENARIO`, `USERS`, `WARMUP_USERS`, `CHECK_BASELINE`, `IDLE_WAIT`;
-`LOCAL_PID` and `GC_LOG` measure an app started with `java -jar` instead of the container, see the
-script for the JVM options):
+`measure-session-size.sh` (options: `SCENARIO`, `USERS`, `VUS`, `MAX_DURATION`, `CHECK_BASELINE`,
+`IDLE_WAIT`; `LOCAL_PID` and `GC_LOG` measure an app started with `java -jar` instead of the
+container, see the script for the JVM options):
 
-1. **Warmup:** `WARMUP_USERS` users (default: `USERS`) run the scenario once. The first requests load classes and
-   fill caches, and Tomcat creates buffers for every concurrent connection. None of this is
-   session memory, so it must be in the heap before the first measurement. Then all sessions are
-   invalidated (`DELETE /actuator/sessions`, which ends the Vaadin sessions and UIs, too; only in
-   builds with the `loadtest` profile).
+- `USERS` (default 100): the number of runs of the scenario, i.e. the sessions at the end.
+- `VUS` (default 10 % of `USERS`, at least 10, at most `USERS`): the k6 virtual users, i.e. the
+  users at the same time. They share the runs (k6 executor `shared-iterations`): a virtual user
+  starts the next run when it has finished one.
+- `MAX_DURATION` (default 2 minutes per round of `VUS` runs, at least `10m`): k6 stops the
+  remaining runs after this time, e.g. `MAX_DURATION=30m`.
+
+1. **Warmup:** `VUS` users run the scenario once each. The first requests load classes and
+   fill caches, and Tomcat creates a worker thread with buffers for every concurrent request. None
+   of this is session memory, so it must be in the heap before the first measurement. Then all
+   sessions are invalidated (`DELETE /actuator/sessions`, which ends the Vaadin sessions and UIs,
+   too; only in builds with the `loadtest` profile).
 2. **Class histogram before:** the baseline without sessions. `jcmd <pid> GC.class_histogram`
    runs a full GC and sums the size of all reachable objects per class; the `Total` line is the
    live heap.
-3. **Load:** `USERS` virtual users run the scenario once each.
+3. **Load:** `VUS` virtual users run the scenario `USERS` times in all. k6 empties the cookie jar
+   of a virtual user before every run, and the script takes the `JSESSIONID` of the run from the
+   first response, so every run leaves its own session with one UI behind.
 4. **Class histogram after.**
 5. **Baseline check** (only with `CHECK_BASELINE=true`): invalidate all sessions again, class
    histogram `cleared`. It should be about the baseline; if it is higher, the load built up one-time costs
    that the warmup did not, and they are counted as session memory.
 
 Besides the sessions, `summary.txt` shows the UIs (from the gauges of `testbench-loadtest-support`)
-and warns unless every new session has exactly one UI and no UIs are left after invalidating.
+and warns unless there are `USERS` new sessions, every new session has exactly one UI and no UIs
+are left after invalidating. Fewer sessions mean failed runs or runs that k6 stopped after
+`MAX_DURATION` (see `load.log`).
 The per-view gauge (`vaadin.view.count` with tag `view`) counts navigations, not views (3 per UI
 in this scenario), so the script subtracts it from the total.
 
@@ -166,7 +177,8 @@ live heap without sessions:   49.1 MB  (baseline)
 baseline growth by load:       0.0 MB  (cleared - before; 0 KB of the memory per session)
 ```
 
-Five runs per number of users, each on a freshly started container:
+Five runs per number of users, each on a freshly started container, with all users at the same
+time (`VUS` = `USERS`, measured before `VUS` existed):
 
 | Users | Memory per session (KB) | Mean | Baseline growth | Live heap without sessions |
 |---|---|---|---|---|
@@ -178,13 +190,15 @@ Five runs per number of users, each on a freshly started container:
 
 The more users, the smaller the spread: a baseline growth of a few hundred KB weighs more when it
 is divided by fewer sessions. Measure with at least 100 users. The live heap without sessions
-grows with the number of users because the warmup is as large as the load (Tomcat threads and
-buffers).
+grew with the number of users because the warmup had as many users at the same time as the load
+(Tomcat threads and buffers); it grows with `VUS`, not with `USERS`.
 
-The warmup must be as large as the load: with only 20 warmup users, the baseline grew by 7.6 MB
-during the load, and the memory per session came out at 322 KB instead of about 240 KB (a second
-run on the then warm app gave 248 KB). If the baseline growth in `summary.txt` is more than a few
-KB per session, raise `WARMUP_USERS`.
+The warmup must have as many users at the same time as the load: with only 20 warmup users for a
+load of 100 users at the same time, the baseline grew by 7.6 MB during the load, and the memory
+per session came out at 322 KB instead of about 240 KB (a second run on the then warm app gave
+248 KB). The script therefore warms up with `VUS` users. If the baseline growth in `summary.txt`
+is still more than a few KB per session, the load built up other one-time costs; run the
+measurement again on the then warm app.
 
 The histograms `before.txt`, `after.txt` and `cleared.txt` stay in the result directory. At the
 end of `summary.txt`, the classes that grew most per session show what a session holds. Here,
@@ -227,15 +241,15 @@ when the last GC ran. During step 3, without forcing GCs, the script therefore r
   the GC has to run.
 
 ```
-extra heap per active user = (peak heap after GC − live heap after) / USERS
+extra heap per active user = (peak heap after GC − live heap after) / VUS
 ```
 
 In `summary.txt`, below the session size:
 
 ```
-under load (100 users at the same time, 19 s)
+under load (100 users at the same time, 100 runs, 19 s)
 peak heap after GC:           96.0 MB  (upper bound of the live heap under load)
-extra heap per active user:    242 KB  ((peak heap after GC - live heap after) / users)
+extra heap per active user:    242 KB  ((peak heap after GC - live heap after) / VUS)
 GCs:                            25     (0 full, 235 ms pauses in total, max 24 ms)
 allocated per run:            16.7 MB  (88 MB/s)
 heap committed:              241.7 MB
@@ -249,16 +263,18 @@ peak container memory:       531.0 MB of 1024 MB limit
 | 100 | 224 – 272 KB | 96 – 100 MB | 525 – 542 MB | 104 – 114 ms |
 | 200 | 306 – 323 KB | 165 – 168 MB | 733 – 746 MB | 72 – 78 ms |
 
-No full GC ran during the load, so the extra heap is an upper bound. All `USERS` start
-at the same time, so they are all active during the run; the values depend on the pace of the
-scenario (think times in the k6 script).
+(Measured with `VUS` = `USERS`.) No full GC ran during the load, so the extra heap is an upper
+bound. The `VUS` virtual users are active during the whole load, one run after the other; the
+values depend on the pace of the scenario (think times in the k6 script).
 
 ### Things to know
 
 - **The sessions stay in memory.** The session timeout is Spring Boot's default of 30 minutes, so
   the number of sessions in the heap is exactly known.
 - **Take the histograms soon after the run.** k6 does not send heartbeats; Vaadin removes a UI after
-  three missed heartbeats (about 15 minutes by default), and the session would look smaller.
+  three missed heartbeats (about 15 minutes by default), and the session would look smaller. This
+  also applies to the first runs of a long load: keep the load well below 15 minutes (fewer rounds,
+  i.e. more `VUS` per `USERS`); `summary.txt` warns if there are fewer UIs than sessions.
 - **The heap must be compacted completely.** For small containers the JVM picks the serial GC,
   whose full GC leaves up to 5 % of dead space in the heap and compacts completely only every 4th
   time. It fills the dead space with filler objects (`jdk.internal.vm.FillerElement`), which the
@@ -269,14 +285,16 @@ scenario (think times in the k6 script).
   unreachable. With a single GC, they were in the baseline but not in `cleared`, and the memory
   per session came out about 8 KB too low (230 instead of 238 KB at 200 users). The script
   therefore runs a GC at the start of the wait, so the Cleaners have run before the histogram.
-- **Idle worker threads end after 60 s.** Tomcat ends worker threads that have been idle for 60 s
-  (beyond the 10 spare threads), and with them their thread-local buffers, about 100 KB each
-  (1.2 MB after 100 users). If they end between two histograms, they are in one and not in the
-  next, which shifts the memory per session by up to 15 KB. The script therefore waits only
-  `IDLE_WAIT` seconds (5) before every histogram: the threads of the warmup stay alive in all
-  histograms, like in an app under load, and cancel out. This needs at least as many warmup users
-  as users (`WARMUP_USERS >= USERS`, the script warns otherwise); the threads that only the load
-  creates would be counted as session memory.
+- **Tomcat creates a worker thread per concurrent request.** Each has thread-local buffers of
+  about 100 KB (1.2 MB after 100 users at the same time). Tomcat ends worker threads that have been
+  idle for 60 s (beyond the 10 spare threads). If they end between two histograms, they are in one
+  and not in the next, which shifts the memory per session by up to 15 KB. The script therefore
+  waits only `IDLE_WAIT` seconds (5) before every histogram: the threads of the warmup stay alive
+  in all histograms, like in an app under load, and cancel out. This needs as many users at the
+  same time in the warmup as in the load, so both run with `VUS` virtual users; the threads that
+  only the load creates would be counted as session memory. The warmup needs only one run per
+  virtual user, not `USERS` runs: the number of threads depends on the users at the same time,
+  not on the sessions.
 - **`jvm.memory.used` is not the live heap.** Even right after a full GC it is 1–3 MB higher than
   the histogram (space not occupied by objects), and the difference changes from GC to GC.
 - **It is the state at the end of the scenario.** A user in the middle of their work (open dialog,
@@ -325,12 +343,16 @@ container    = 160 MB + 100 MB + 710 MB                  ≈   970 MB  → 1.5 G
 ### Check the projection under load
 
 The projection is a model; a load test with the projected container confirms it. Start the
-container with the projected limits and run as many users as will be active at the same time:
+container with the projected limits; `VUS` are the active users and `USERS` the concurrent
+sessions at the end:
 
 ```bash
 APP_MEMORY=1536m APP_MAX_RAM_PERCENTAGE=50 docker compose up -d
-USERS=300 loadtest/measure-session-size.sh check-1.5g
+USERS=900 VUS=300 loadtest/measure-session-size.sh check-1.5g
 ```
+
+The sessions of the finished runs stay in the heap until the timeout, like those of the users who
+left the app, so at the end the heap holds the projected sessions while `VUS` users are active.
 
 The projection holds if, in `summary.txt` (under load):
 
