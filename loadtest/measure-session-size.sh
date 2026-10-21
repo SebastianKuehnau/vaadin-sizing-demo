@@ -1,12 +1,14 @@
 #!/usr/bin/env bash
 # Measures the memory of one user session in the running container (see README.md):
 #
-#   1. warmup: WARMUP_USERS (default: USERS) run the scenario once, so one-time costs (class loading,
-#      caches) are not counted as session memory; then all sessions are invalidated (DELETE
-#      /actuator/sessions)
+#   1. warmup: VUS virtual users run the scenario once each, so one-time costs (class loading,
+#      caches, Tomcat worker threads) are not counted as session memory; then all sessions are
+#      invalidated (DELETE /actuator/sessions)
 #   2. class histogram "before" (baseline, no sessions)
-#   3. USERS virtual users run the scenario once each; every user leaves one session with one UI
-#      (one browser tab) behind, which stays in memory until the session timeout (30 minutes)
+#   3. load: VUS virtual users run the scenario USERS times in all (k6 executor shared-iterations,
+#      a VU starts the next run when it has finished one); every run starts with an empty cookie
+#      jar, so it leaves one session with one UI (one browser tab) behind, which stays in memory
+#      until the session timeout (30 minutes)
 #   4. class histogram "after"
 #   5. only with CHECK_BASELINE=true: all sessions are invalidated again and class histogram
 #      "cleared"; it should be about the baseline, otherwise the load built up one-time costs
@@ -16,26 +18,33 @@
 # objects per class: the live heap. The image is a JRE without jcmd, so jcmd runs in a JDK container
 # (JCMD_IMAGE) that shares the PID namespace of the app. Before every histogram, the script runs a
 # GC and waits IDLE_WAIT seconds (default 5): objects with a Cleaner (e.g. ZipFileSystem and its
-# buffers) are freed only by the GC after the one that found them unreachable. Tomcat ends worker
-# threads, with about 100 KB of buffers each, only after 60 s idle; with the short wait, the threads
-# of the warmup are still alive in every histogram, like in an app under load, and cancel out. So
-# the warmup needs at least as many users as the load (WARMUP_USERS >= USERS), otherwise the extra
-# threads of the load are counted as session memory.
+# buffers) are freed only by the GC after the one that found them unreachable. Tomcat creates as
+# many worker threads, with about 100 KB of buffers each, as requests run at the same time, and
+# ends them only after 60 s idle; with the short wait, the threads of the warmup are still alive in
+# every histogram, like in an app under load, and cancel out. So the warmup runs with as many VUs
+# as the load, otherwise the extra threads of the load are counted as session memory; it does not
+# need as many sessions.
 #
 # Memory per session = (live heap after - live heap before) / sessions after
 # CPU per run         = JVM CPU time used during step 3 / sessions after
 #
 # During step 3, without forcing GCs, the memory under load is recorded: the heap after every GC
 # (GC log of the JVM, -Xlog:gc in compose.yaml) and the memory of the container (docker stats,
-# about every 2 s). It is what the app needs while USERS users are active at the same time, see
+# about every 2 s). It is what the app needs while VUS users are active at the same time, see
 # "Project the server size" in README.md:
 #
-# Extra heap per active user = (peak heap after GC - live heap after) / USERS
+# Extra heap per active user = (peak heap after GC - live heap after) / VUS
 #
 # The CPU per run is the basis for the number of cores, see loadtest/measure-cpu-capacity.sh.
 #
-#   loadtest/measure-session-size.sh                 # 100 users
+# USERS is the number of sessions at the end (default 100), VUS the number of users at the same
+# time (default 10 % of USERS, at least 10, at most USERS). k6 stops a run after MAX_DURATION
+# (default 2 minutes per round of VUS runs, at least 10 minutes); then there are fewer sessions
+# than USERS and summary.txt warns.
+#
+#   loadtest/measure-session-size.sh                 # 100 users, 10 at the same time
 #   USERS=200 loadtest/measure-session-size.sh lazy  # the label is added to the result directory
+#   USERS=1000 VUS=100 loadtest/measure-session-size.sh   # 1,000 sessions, 100 users at the same time
 #   CHECK_BASELINE=true loadtest/measure-session-size.sh   # with step 5
 #   SCENARIO=hello-world loadtest/measure-session-size.sh hello   # the other k6 script
 #
@@ -59,10 +68,11 @@
 set -euo pipefail
 
 USERS="${USERS:-100}"
-WARMUP_USERS="${WARMUP_USERS:-100}"
+default_vus=$(( USERS / 10 < 10 ? 10 : USERS / 10 ))
+VUS="${VUS:-$(( default_vus < USERS ? default_vus : USERS ))}"
+MAX_DURATION="${MAX_DURATION:-$(( (USERS + VUS - 1) / VUS * 2 < 10 ? 10 : (USERS + VUS - 1) / VUS * 2 ))m}"
 CHECK_BASELINE="${CHECK_BASELINE:-false}"
-#SCENARIO="${SCENARIO:-edit-person}" # the k6 script src/test/k6/recordings/<SCENARIO>.js
-SCENARIO="${SCENARIO:-hello-world}" # the k6 script src/test/k6/recordings/<SCENARIO>.js
+SCENARIO="${SCENARIO:-edit-person}" # the k6 script src/test/k6/recordings/<SCENARIO>.js
 IDLE_WAIT="${IDLE_WAIT:-10}"
 JCMD_IMAGE="${JCMD_IMAGE:-eclipse-temurin:25-jdk-alpine}"
 APP_IP="${APP_IP:-localhost}"
@@ -101,9 +111,9 @@ else
                 "Restart the container with the current compose.yaml: docker compose up -d" >&2
 fi
 
-[[ "$WARMUP_USERS" -ge "$USERS" ]] \
-    || echo "Warning: fewer warmup users ($WARMUP_USERS) than users ($USERS), the worker threads that" \
-            "only the load creates (about 100 KB each) are counted as session memory" >&2
+[[ "$VUS" -ge 1 && "$VUS" -le "$USERS" ]] \
+    || { echo "VUS ($VUS) must be between 1 and USERS ($USERS): k6 cannot share fewer runs than" \
+              "virtual users" >&2; exit 1; }
 
 results="results/$(date +%Y%m%d-%H%M%S)${label:+-$label}"
 mkdir -p "$results"
@@ -177,13 +187,14 @@ snapshot() { # class histogram (full GC), then sessions and UIs; sets heap_, ses
     printf -v "uis_$1" '%s' "$uis"
 }
 
-k6run() { # k6run <name> <users> [extra arguments]: every user runs the scenario once
-    local name=$1 users=$2
-    shift 2
+k6run() { # k6run <name> <vus> <iterations> [extra arguments]: vus users share the runs
+    local name=$1 vus=$2 iterations=$3
+    shift 3
     rm -rf "$recordings/report"
     ./mvnw -Ploadtest loadtest:run \
         -Dk6.testFile="$recordings/$SCENARIO.js" \
-        -Dk6.vus="$users" -Dk6.executor=per-vu-iterations -Dk6.iterations=1 -Dk6.duration=10m \
+        -Dk6.executor=shared-iterations -Dk6.vus="$vus" -Dk6.iterations="$iterations" \
+        -Dk6.duration="$MAX_DURATION" \
         -Dk6.appIp="$APP_IP" -Dk6.appPort="$APP_PORT" "$@" > "$results/$name.log" 2>&1 \
         || { echo "k6 run '$name' failed, see $results/$name.log" >&2; exit 1; }
     [[ -d "$recordings/report" ]] && mv "$recordings/report" "$results/$name-report"
@@ -212,21 +223,21 @@ sample_container() { # prints "<epoch seconds> <docker MemUsage>" until killed, 
 
 start_time="$(metric process.start.time)" # to detect restarts, see check_app
 
-echo "Warmup: $WARMUP_USERS users"
-k6run warmup "$WARMUP_USERS" -Dk6.failOnThreshold=false -Dk6.managementPort=-1
+echo "Warmup: $VUS users at the same time, one run each"
+k6run warmup "$VUS" "$VUS" -Dk6.failOnThreshold=false -Dk6.managementPort=-1
 
 echo "Invalidating the warmup sessions, class histogram before (in ${IDLE_WAIT} s)"
 invalidate_sessions
 snapshot before
 
-echo "Load: $USERS users"
+echo "Load: $USERS runs, $VUS users at the same time (at most $MAX_DURATION)"
 cpu_before="$(metric process.cpu.time)" # ns; read outside the class histograms, whose full GC costs CPU
 allocated_before="$(metric jvm.gc.memory.allocated)"
 load_start="$(date +%s)"
 uptime_start="$(uptime)"
 sample_container > "$results/container-samples.txt" &
 sampler=$!
-k6run load "$USERS" -Dk6.managementPort="$MANAGEMENT_PORT"
+k6run load "$VUS" "$USERS" -Dk6.managementPort="$MANAGEMENT_PORT"
 kill "$sampler"
 # k6 passes even if every request failed, as the thresholds only check durations
 [[ "$(metric tomcat.sessions.active.current)" -gt 0 ]] \
@@ -259,14 +270,14 @@ if [[ "$CHECK_BASELINE" == true ]]; then
 fi
 
 echo "scenario: $SCENARIO" > "$results/summary.txt"
-python3 - "$results" "$USERS" "$heap_before" "$sessions_before" "$heap_after" "$sessions_after" \
+python3 - "$results" "$USERS" "$VUS" "$heap_before" "$sessions_before" "$heap_after" "$sessions_after" \
     "$cpu_before" "$cpu_after" "$allocated_before" "$allocated_after" "$load_start" "$load_end" \
     "$heap_committed" "$nonheap" "$container_limit" "$heap_cleared" "$sessions_cleared" "$uptime_start" "$uptime_end" \
     "$uis_before" "$uis_after" "$uis_cleared" \
     <<'EOF' | tee -a "$results/summary.txt"
 import os, re, sys
 results = sys.argv[1]
-(users, heap_before, sessions_before, heap_after, sessions_after, cpu_before, cpu_after,
+(users, vus, heap_before, sessions_before, heap_after, sessions_after, cpu_before, cpu_after,
  allocated_before, allocated_after, load_start, load_end, heap_committed, nonheap,
  container_limit, heap_cleared, sessions_cleared) = map(int, sys.argv[2:-5])
 uptime_start, uptime_end = map(float, sys.argv[-5:-3])
@@ -291,6 +302,9 @@ if uis_after - max(uis_before, 0) != sessions_after - sessions_before:
           " is not the memory of one user with one browser tab")
 if new_sessions <= 0:
     print("No new sessions, check the k6 log"); sys.exit(1)
+if new_sessions != users:
+    print(f"Warning: {new_sessions} new sessions instead of {users} (USERS): runs failed, shared a session"
+          " or were stopped after MAX_DURATION, see load.log")
 per_session = (heap_after - heap_before) / new_sessions
 print(f"\nmemory per session:        {per_session / 1024:7.0f} KB  ({new_sessions} new sessions)")
 print(f"live heap without sessions: {mb(heap_before):6.1f} MB  (baseline)")
@@ -320,13 +334,13 @@ with open(f"{results}/container-samples.txt") as samples, open(f"{results}/conta
 
 duration = max(load_end - load_start, 1)
 allocated = allocated_after - allocated_before
-print(f"\nunder load ({users} users at the same time, {duration} s)")
+print(f"\nunder load ({vus} users at the same time, {users} runs, {duration} s)")
 if gcs:
     peak = max(after for _, after, _ in gcs)
     pauses = [pause for _, _, pause in gcs]
     full = sum(kind == "Pause Full" for kind, _, _ in gcs)
     print(f"peak heap after GC:        {mb(peak):7.1f} MB  (upper bound of the live heap under load)")
-    print(f"extra heap per active user:{max(peak - heap_after, 0) / users / 1024:7.0f} KB  ((peak heap after GC - live heap after) / users)")
+    print(f"extra heap per active user:{max(peak - heap_after, 0) / vus / 1024:7.0f} KB  ((peak heap after GC - live heap after) / VUS)")
     print(f"GCs:                       {len(gcs):7d}     ({full} full, {sum(pauses):.0f} ms pauses in total, max {max(pauses):.0f} ms)")
 else:
     print("peak heap after GC:            n/a  (no GC log or no GC during the load, see gc.log)")
