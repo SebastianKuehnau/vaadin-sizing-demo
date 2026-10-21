@@ -188,7 +188,7 @@
                                 <testClass>HelloWorldScenario</testClass>
                             </testClasses>
                             <!-- The recording runs the scenarios in a forked Maven build -->
-                            <mavenArgs>-Ploadtest -Dcom.vaadin.testbench.Parameters.headless=true -Dvaadin.pushMode=disabled</mavenArgs>
+                            <mavenArgs>-Ploadtest -Dcom.vaadin.testbench.Parameters.headless=true -Dvaadin.pushMode=disabled -Dcom.vaadin.testbench.Parameters.chromeOptions=--disable-component-update,--disable-background-networking</mavenArgs>
                             <managementPort>8081</managementPort>
                             <collectVaadinMetrics>true</collectVaadinMetrics>
                             <httpReqDurationP95>2000</httpReqDurationP95>
