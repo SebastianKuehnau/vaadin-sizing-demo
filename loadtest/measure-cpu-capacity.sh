@@ -15,6 +15,7 @@
 #
 #   loadtest/measure-cpu-capacity.sh                                 # 2 cores
 #   APP_CPUS=1 RATES="30 60 90 120" loadtest/measure-cpu-capacity.sh 1-core
+#   SCENARIO=hello-world loadtest/measure-cpu-capacity.sh hello      # the other k6 script
 #
 # The container keeps running with these settings; restart it with docker compose up -d for the
 # session size measurement (it needs the default session timeout of 30 minutes).
@@ -26,11 +27,12 @@ set -euo pipefail
 APP_CPUS="${APP_CPUS:-2.0}"
 APP_MEMORY="${APP_MEMORY:-2g}"
 SESSION_TIMEOUT="${SESSION_TIMEOUT:-2m}"
-RATES="${RATES:-500 1000 500}" # scenario runs per minute
+RATES="${RATES:-50 100 50}" # scenario runs per minute
 STEP_DURATION="${STEP_DURATION:-1m}"
-WARMUP_RATE="${WARMUP_RATE:-100}" # scenario runs per minute
+WARMUP_RATE="${WARMUP_RATE:-50}" # scenario runs per minute
 WARMUP_DURATION="${WARMUP_DURATION:-1m}"
 P95_LIMIT="${P95_LIMIT:-500}"
+SCENARIO="${SCENARIO:-edit-person}" # the k6 script src/test/k6/recordings/<SCENARIO>.js
 APP_IP="${APP_IP:-localhost}"
 APP_PORT="${APP_PORT:-8080}"
 MANAGEMENT_PORT="${MANAGEMENT_PORT:-8081}"
@@ -40,8 +42,8 @@ cd "$(dirname "$0")/.."
 actuator="http://127.0.0.1:$MANAGEMENT_PORT/actuator"
 recordings=src/test/k6/recordings
 
-ls "$recordings"/*.js >/dev/null 2>&1 \
-    || { echo "No k6 script in $recordings, record it with loadtest/rebuild.sh" >&2; exit 1; }
+[[ -f "$recordings/$SCENARIO.js" ]] \
+    || { echo "No k6 script $recordings/$SCENARIO.js, record it with loadtest/rebuild.sh" >&2; exit 1; }
 
 results="$PWD/results/$(date +%Y%m%d-%H%M%S)-cpu${label:+-$label}"
 mkdir -p "$results"
@@ -73,6 +75,7 @@ k6run() { # k6run <name> <runs per minute> <duration> [extra arguments]
     vus=$(( rate / 2 + 10 ))
     rm -rf "$recordings/report"
     ./mvnw -Ploadtest loadtest:run \
+        -Dk6.testFile="$recordings/$SCENARIO.js" \
         -Dk6.executor=constant-arrival-rate -Dk6.rate="$rate" -Dk6.timeUnit=1m \
         -Dk6.duration="$duration" -Dk6.preAllocatedVUs="$vus" -Dk6.maxVUs=$(( vus * 2 )) \
         -Dk6.threshold.checksAbortOnFail=false -Dk6.failOnThreshold=false \
@@ -98,6 +101,7 @@ echo "Warmup: $WARMUP_RATE runs/min for $WARMUP_DURATION"
 k6run warmup "$WARMUP_RATE" "$WARMUP_DURATION" -Dk6.managementPort=-1
 
 {
+    echo "scenario: $SCENARIO"
     echo "$APP_CPUS cores, $APP_MEMORY, session timeout $SESSION_TIMEOUT, steps of $STEP_DURATION"
     echo "warmup: $WARMUP_RATE runs/min for $WARMUP_DURATION"
     echo

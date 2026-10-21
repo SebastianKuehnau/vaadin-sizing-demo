@@ -78,6 +78,17 @@ random text field, save, delete the person. `loadtest:record` (`testbench-conver
 once in Chrome through a recording proxy and turns the traffic into the k6 script `src/test/k6/recordings/edit-person.js`. k6 replays it with any number of virtual users;
 every virtual user leaves exactly **one session with one UI** behind.
 
+Builds with the `loadtest` profile (the Docker image, too) push with **long polling** instead of
+WebSocket (`PushTransportInitListener`): Chrome tunnels WebSockets through the recording proxy,
+which then fails with `NotSslRecordException`, and k6 only replays the HTTP requests of the
+recording. The transport can be changed with the property `app.push.transport`, e.g.
+`APP_JAVA_OPTS=-Dapp.push.transport=WEBSOCKET docker compose up -d` (then the recorded script does not match the app).
+
+`HelloWorldScenario` is a second, small scenario: open `/hello-world`, say hello with an empty name
+field ("Hello stranger") and then with a random name. `loadtest:record` records it as
+`src/test/k6/recordings/hello-world.js`. The measurement scripts run one k6 script, `edit-person` by
+default; `SCENARIO` selects another, e.g. `SCENARIO=hello-world loadtest/measure-session-size.sh hello`.
+
 ### Record and run the k6 script locally (without Docker)
 
 The scripts above do this in the container. To record and run the k6 script by hand against a
@@ -89,7 +100,7 @@ locally started app (ports 8080 and 8081 must be free, so stop the container fir
 ./mvnw clean package -DskipTests -Ploadtest
 java -jar target/vaadin-sizing-demo-1.0-SNAPSHOT.jar
 
-# 2. In a second terminal: record the k6 script (runs EditPersonScenario in headless Chrome)
+# 2. In a second terminal: record the k6 scripts (runs the scenarios in headless Chrome)
 MAVEN_OPTS="-Dio.netty.leakDetection.level=disabled" \
     ./mvnw -Ploadtest test-compile loadtest:record -Dk6.forceRecord=true
 
@@ -109,7 +120,7 @@ Another host or port: `k6 run -e APP_IP=192.168.1.100 -e APP_PORT=8080 …`, or
 
 ### How the measurement works
 
-`measure-session-size.sh` (options: `USERS`, `WARMUP_USERS`, `CHECK_BASELINE`, `IDLE_WAIT`;
+`measure-session-size.sh` (options: `SCENARIO`, `USERS`, `WARMUP_USERS`, `CHECK_BASELINE`, `IDLE_WAIT`;
 `LOCAL_PID` and `GC_LOG` measure an app started with `java -jar` instead of the container, see the
 script for the JVM options):
 

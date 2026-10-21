@@ -37,6 +37,7 @@
 #   loadtest/measure-session-size.sh                 # 100 users
 #   USERS=200 loadtest/measure-session-size.sh lazy  # the label is added to the result directory
 #   CHECK_BASELINE=true loadtest/measure-session-size.sh   # with step 5
+#   SCENARIO=hello-world loadtest/measure-session-size.sh hello   # the other k6 script
 #
 # Without Docker, against an app started locally with java -jar: LOCAL_PID is its process ID and
 # GC_LOG its GC log file. jcmd of the local JDK is used, and the RSS of the process (ps) replaces
@@ -57,9 +58,11 @@
 # per GC) and container.csv (container memory over time).
 set -euo pipefail
 
-USERS="${USERS:-1000}"
+USERS="${USERS:-100}"
 WARMUP_USERS="${WARMUP_USERS:-100}"
 CHECK_BASELINE="${CHECK_BASELINE:-false}"
+#SCENARIO="${SCENARIO:-edit-person}" # the k6 script src/test/k6/recordings/<SCENARIO>.js
+SCENARIO="${SCENARIO:-hello-world}" # the k6 script src/test/k6/recordings/<SCENARIO>.js
 IDLE_WAIT="${IDLE_WAIT:-10}"
 JCMD_IMAGE="${JCMD_IMAGE:-eclipse-temurin:25-jdk-alpine}"
 APP_IP="${APP_IP:-localhost}"
@@ -81,8 +84,8 @@ curl -sf "$actuator/health" >/dev/null \
 curl -s -o /dev/null "http://$APP_IP:$APP_PORT/" \
     || { echo "The app port $APP_IP:$APP_PORT is not reachable (the Actuator is). Is another app" \
               "using the port? Restart the container: docker compose up -d --force-recreate" >&2; exit 1; }
-ls "$recordings"/*.js >/dev/null 2>&1 \
-    || { echo "No k6 script in $recordings, record it with loadtest/rebuild.sh" >&2; exit 1; }
+[[ -f "$recordings/$SCENARIO.js" ]] \
+    || { echo "No k6 script $recordings/$SCENARIO.js, record it with loadtest/rebuild.sh" >&2; exit 1; }
 
 if [[ -n "$LOCAL_PID" ]]; then
     kill -0 "$LOCAL_PID" 2>/dev/null || { echo "No process with LOCAL_PID $LOCAL_PID" >&2; exit 1; }
@@ -179,6 +182,7 @@ k6run() { # k6run <name> <users> [extra arguments]: every user runs the scenario
     shift 2
     rm -rf "$recordings/report"
     ./mvnw -Ploadtest loadtest:run \
+        -Dk6.testFile="$recordings/$SCENARIO.js" \
         -Dk6.vus="$users" -Dk6.executor=per-vu-iterations -Dk6.iterations=1 -Dk6.duration=10m \
         -Dk6.appIp="$APP_IP" -Dk6.appPort="$APP_PORT" "$@" > "$results/$name.log" 2>&1 \
         || { echo "k6 run '$name' failed, see $results/$name.log" >&2; exit 1; }
@@ -254,11 +258,12 @@ if [[ "$CHECK_BASELINE" == true ]]; then
     snapshot cleared
 fi
 
+echo "scenario: $SCENARIO" > "$results/summary.txt"
 python3 - "$results" "$USERS" "$heap_before" "$sessions_before" "$heap_after" "$sessions_after" \
     "$cpu_before" "$cpu_after" "$allocated_before" "$allocated_after" "$load_start" "$load_end" \
     "$heap_committed" "$nonheap" "$container_limit" "$heap_cleared" "$sessions_cleared" "$uptime_start" "$uptime_end" \
     "$uis_before" "$uis_after" "$uis_cleared" \
-    <<'EOF' | tee "$results/summary.txt"
+    <<'EOF' | tee -a "$results/summary.txt"
 import os, re, sys
 results = sys.argv[1]
 (users, heap_before, sessions_before, heap_after, sessions_after, cpu_before, cpu_after,

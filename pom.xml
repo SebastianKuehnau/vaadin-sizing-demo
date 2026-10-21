@@ -74,7 +74,7 @@
             <artifactId>vaadin-testbench-junit5</artifactId>
             <scope>test</scope>
         </dependency>
-        <!-- Routes EditPersonScenario through the recording proxy of loadtest:record -->
+        <!-- Routes the load test scenarios through the recording proxy of loadtest:record -->
         <dependency>
             <groupId>com.vaadin</groupId>
             <artifactId>testbench-loadtest-support</artifactId>
@@ -185,9 +185,10 @@
                         <configuration>
                             <testClasses>
                                 <testClass>EditPersonScenario</testClass>
+                                <testClass>HelloWorldScenario</testClass>
                             </testClasses>
-                            <!-- The recording runs the scenario in a forked Maven build -->
-                            <mavenArgs>-Ploadtest -Dcom.vaadin.testbench.Parameters.headless=true</mavenArgs>
+                            <!-- The recording runs the scenarios in a forked Maven build -->
+                            <mavenArgs>-Ploadtest -Dcom.vaadin.testbench.Parameters.headless=true -Dvaadin.pushMode=disabled</mavenArgs>
                             <managementPort>8081</managementPort>
                             <collectVaadinMetrics>true</collectVaadinMetrics>
                             <httpReqDurationP95>2000</httpReqDurationP95>
