@@ -9,7 +9,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.openqa.selenium.WebElement;
 import org.vaadin.demo.sizing.it.AbstractIT;
 
-import java.util.List;
 import java.util.Random;
 
 /**
