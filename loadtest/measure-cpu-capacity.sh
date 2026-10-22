@@ -26,6 +26,13 @@
 #   APP_CPUS=1 RATES="30 60 90 120" loadtest/measure-cpu-capacity.sh 1-core
 #   SCENARIO=hello-world loadtest/measure-cpu-capacity.sh hello      # the other k6 script
 #
+# Without Docker, against an app started locally with java -jar: LOCAL_PID is its process ID. The
+# script does not restart it, so start it with the short session timeout yourself. Without a CPU
+# limit, the utilization refers to APP_CPUS, by default all cores of the machine, which k6 shares:
+#
+#   java -Dserver.servlet.session.timeout=2m -jar target/vaadin-sizing-demo-1.0-SNAPSHOT.jar
+#   LOCAL_PID=$(pgrep -f vaadin-sizing-demo-1.0-SNAPSHOT.jar) loadtest/measure-cpu-capacity.sh local
+#
 # The container keeps running with these settings; restart it with docker compose up -d for the
 # session size measurement (it needs the default session timeout of 30 minutes).
 #
@@ -33,7 +40,8 @@
 # the rate steps) and per step the k6 log and the k6 report (HTML and JSON).
 set -euo pipefail
 
-APP_CPUS="${APP_CPUS:-2.0}"
+LOCAL_PID="${LOCAL_PID:-}"
+APP_CPUS="${APP_CPUS:-$([[ -n "$LOCAL_PID" ]] && getconf _NPROCESSORS_ONLN || echo 2.0)}"
 APP_MEMORY="${APP_MEMORY:-2g}"
 SESSION_TIMEOUT="${SESSION_TIMEOUT:-2m}"
 RATES="${RATES:-50 100 50}" # scenario runs per minute
@@ -119,10 +127,19 @@ EOF
     read -r completed dropped failed p95 cpu_per_run <<< "$stats"
 }
 
-echo "Restarting the container: $APP_CPUS cores, $APP_MEMORY, session timeout $SESSION_TIMEOUT"
-APP_CPUS="$APP_CPUS" APP_MEMORY="$APP_MEMORY" \
-    APP_JAVA_OPTS="-Dserver.servlet.session.timeout=$SESSION_TIMEOUT ${APP_JAVA_OPTS:-}" \
-    docker compose up -d --no-build --force-recreate >/dev/null
+if [[ -n "$LOCAL_PID" ]]; then
+    kill -0 "$LOCAL_PID" 2>/dev/null || { echo "No process with LOCAL_PID $LOCAL_PID" >&2; exit 1; }
+    command jcmd "$LOCAL_PID" VM.system_properties 2>/dev/null \
+        | grep -q '^server\.servlet\.session\.timeout=' \
+        || echo "Warning: the app has no -Dserver.servlet.session.timeout, the sessions of the" \
+                "finished runs stay 30 minutes in the heap, see the start command at the top" >&2
+    echo "Local app (PID $LOCAL_PID), utilization relative to $APP_CPUS cores"
+else
+    echo "Restarting the container: $APP_CPUS cores, $APP_MEMORY, session timeout $SESSION_TIMEOUT"
+    APP_CPUS="$APP_CPUS" APP_MEMORY="$APP_MEMORY" \
+        APP_JAVA_OPTS="-Dserver.servlet.session.timeout=$SESSION_TIMEOUT ${APP_JAVA_OPTS:-}" \
+        docker compose up -d --no-build --force-recreate >/dev/null
+fi
 for _ in $(seq 1 120); do
     curl -sf "$actuator/health" >/dev/null && break
     sleep 1
@@ -169,7 +186,11 @@ $stable || echo "Warning: the CPU per run is not stable after $WARMUP_MAX_STEPS 
 {
     echo
     echo "scenario: $SCENARIO"
-    echo "$APP_CPUS cores, $APP_MEMORY, session timeout $SESSION_TIMEOUT, steps of $STEP_DURATION"
+    if [[ -n "$LOCAL_PID" ]]; then
+        echo "local app (PID $LOCAL_PID), utilization of $APP_CPUS cores, steps of $STEP_DURATION"
+    else
+        echo "$APP_CPUS cores, $APP_MEMORY, session timeout $SESSION_TIMEOUT, steps of $STEP_DURATION"
+    fi
     echo
     echo "runs/min  completed  dropped  failed    p95 ms  CPU/run ms  cores used  utilization"
 } | tee -a "$results/summary.txt"

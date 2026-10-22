@@ -47,14 +47,24 @@ a cluster it does not reach users on other nodes.
 ./mvnw loadtest:record -Ploadtest
 ```
 
-3a. run the tests with k6
+3a. run the "edit-person" tests with k6
 ```bash
 k6 run -e APP_PORT=8080 /Users/sebastian/Downloads/vaadin-sizing-demo/src/test/k6/recordings/edit-person.js
 ```
 
 3b. run the tests with loadtest plugin
 ```bash
-./mvnw loadtest:run -Ploadtest -Dk6.vus=100 -Dk6.duration=1m
+./mvnw loadtest:run -Ploadtest -Dk6.vus=100 -Dk6.duration=1m -Dk6.script=/Users/sebastian/Downloads/vaadin-sizing-demo/src/test/k6/recordings/edit-person.js
+```
+
+4a. run a measurement script for cpu capacity
+```bash
+LOCAL_PID=$(pgrep -f vaadin-sizing-demo-1.0-SNAPSHOT.jar) loadtest/measure-cpu-capacity.sh local
+```
+
+4b. run a measurement script for memory capacity
+```bash
+LOCAL_PID=$(pgrep -f vaadin-sizing-demo-1.0-SNAPSHOT.jar) loadtest/measure-memory-capacity.sh local
 ```
 
 ## 1. Measure the session size
@@ -400,6 +410,15 @@ in `RATES`. In every step, k6 starts the scenario at a fixed rate (runs per minu
 `constant-arrival-rate`), no matter how fast the app answers, like real users. The test stops
 after the first step in which the app is saturated: p95 above `P95_LIMIT` (500 ms), more than 1 %
 failed requests or checks, or runs that k6 could not start because all virtual users were busy.
+
+Against a locally started app instead of the container, set `LOCAL_PID`. The script then does not
+restart the app, so start it with the short session timeout yourself. The utilization refers to
+`APP_CPUS`, by default all cores of the machine, which k6 shares:
+
+```bash
+java -Dserver.servlet.session.timeout=2m -jar target/vaadin-sizing-demo-1.0-SNAPSHOT.jar
+LOCAL_PID=$(pgrep -f vaadin-sizing-demo-1.0-SNAPSHOT.jar) loadtest/measure-cpu-capacity.sh local
+```
 
 **Warmup:** steps of `WARMUP_STEP` (1 minute) at `WARMUP_RATE` runs per minute (50) until the
 CPU per run changed by less than `WARMUP_TOLERANCE` (0.10, i.e. 10 %) twice in a row, i.e. three

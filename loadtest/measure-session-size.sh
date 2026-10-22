@@ -71,7 +71,7 @@
 # per GC) and container.csv (container memory over time).
 set -euo pipefail
 
-USERS="${USERS:-1000}"
+USERS="${USERS:-100}"
 default_vus=$(( USERS / 10 < 10 ? 10 : USERS / 10 ))
 VUS="${VUS:-$(( default_vus < USERS ? default_vus : USERS ))}"
 export MAX_LOAD_MINUTES="${MAX_LOAD_MINUTES:-10}" # also read by the summary
