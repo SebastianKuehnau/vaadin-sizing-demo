@@ -245,8 +245,8 @@ sample_container() { # prints "<epoch seconds> <docker MemUsage>" until killed, 
 
 start_time="$(metric process.start.time)" # to detect restarts, see check_app
 
-echo "Warmup: $VUS users at the same time, one run each"
-k6run warmup "$VUS" "$VUS" -Dk6.failOnThreshold=false -Dk6.managementPort=-1
+echo "Warmup: ${WARMUP_VUS:-$VUS} users at the same time, one run each"
+k6run warmup "${WARMUP_VUS:-$VUS}" "${WARMUP_VUS:-$VUS}" -Dk6.failOnThreshold=false -Dk6.managementPort=-1
 
 echo "Invalidating the warmup sessions, class histogram before (in ${IDLE_WAIT} s)"
 invalidate_sessions
