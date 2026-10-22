@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # Measures the memory of one user session in the running container (see README.md):
 #
-#   1. warmup: VUS virtual users run the scenario once each, so one-time costs (class loading,
-#      caches, Tomcat worker threads) are not counted as session memory; then all sessions are
-#      invalidated (DELETE /actuator/sessions)
+#   1. warmup: WARMUP_VUS virtual users run the scenario once each, so one-time costs (class
+#      loading, caches, Tomcat worker threads) are not counted as session memory; then all sessions
+#      are invalidated (DELETE /actuator/sessions)
 #   2. class histogram "before" (baseline, no sessions)
 #   3. load: VUS virtual users run the scenario USERS times in all (k6 executor shared-iterations,
 #      a VU starts the next run when it has finished one); every run starts with an empty cookie
@@ -22,8 +22,9 @@
 # many worker threads, with about 100 KB of buffers each, as requests run at the same time, and
 # ends them only after 60 s idle; with the short wait, the threads of the warmup are still alive in
 # every histogram, like in an app under load, and cancel out. So the warmup runs with as many VUs
-# as the load, otherwise the extra threads of the load are counted as session memory; it does not
-# need as many sessions.
+# as the load (WARMUP_VUS, default VUS), otherwise the extra threads of the load are counted as
+# session memory; it does not need as many sessions. Set WARMUP_VUS lower only to demonstrate this
+# pitfall.
 #
 # Memory per session = (live heap after - live heap before) / sessions after
 # CPU per run         = JVM CPU time used during step 3 / sessions after
@@ -37,18 +38,19 @@
 #
 # The CPU per run is the basis for the number of cores, see loadtest/measure-cpu-capacity.sh.
 #
-# USERS is the number of sessions at the end (default 1000), VUS the number of users at the same
-# time (default 10 % of USERS, at least 10, at most USERS). k6 sends no heartbeats: Vaadin removes
-# a UI after three missed heartbeats (about 15 minutes), so the load must end well before the UIs of
-# the first runs expire. It runs in rounds of VUS runs; if ceil(USERS / VUS) rounds of ROUND_SECONDS
-# (default 20, an estimate; 100 users at the same time took about 19 s) take longer than
+# USERS is the number of sessions at the end (default 100), VUS the number of users at the same
+# time (default USERS, i.e. all at the same time; at most USERS). k6 sends no heartbeats: Vaadin
+# removes a UI after three missed heartbeats (about 15 minutes), so the load must end well before
+# the UIs of the first runs expire. It runs in rounds of VUS runs; if ceil(USERS / VUS) rounds of
+# ROUND_SECONDS (default 20, an estimate; 100 users at the same time took about 19 s) take longer than
 # MAX_LOAD_MINUTES (default 10), the script stops before the warmup and names the minimum VUS. k6
 # stops the remaining runs after MAX_LOAD_MINUTES; then there are fewer sessions than USERS and
 # summary.txt warns. It also warns if the load took longer than MAX_LOAD_MINUTES.
 #
-#   loadtest/measure-session-size.sh                 # 1,000 users, 100 at the same time
+#   loadtest/measure-session-size.sh                 # 100 users, all at the same time
 #   USERS=200 loadtest/measure-session-size.sh lazy  # the label is added to the result directory
-#   USERS=100 loadtest/measure-session-size.sh quick # 100 sessions, 10 users at the same time
+#   USERS=100 VUS=10 loadtest/measure-session-size.sh quick # 100 sessions, 10 users at the same time
+#   WARMUP_VUS=20 loadtest/measure-session-size.sh pitfall  # demo only: too few warmup users
 #   CHECK_BASELINE=true loadtest/measure-session-size.sh   # with step 5
 #   SCENARIO=hello-world loadtest/measure-session-size.sh hello   # the other k6 script
 #
@@ -72,8 +74,8 @@
 set -euo pipefail
 
 USERS="${USERS:-100}"
-default_vus=$(( USERS / 10 < 10 ? 10 : USERS / 10 ))
-VUS="${VUS:-$(( default_vus < USERS ? default_vus : USERS ))}"
+VUS="${VUS:-$USERS}"
+WARMUP_VUS="${WARMUP_VUS:-$VUS}" # lower only to demonstrate the warmup pitfall, see README.md
 export MAX_LOAD_MINUTES="${MAX_LOAD_MINUTES:-10}" # also read by the summary
 ROUND_SECONDS="${ROUND_SECONDS:-20}" # one round of VUS runs, 100 users at the same time took ~19 s
 CHECK_BASELINE="${CHECK_BASELINE:-false}"
@@ -119,6 +121,7 @@ fi
 [[ "$VUS" -ge 1 && "$VUS" -le "$USERS" ]] \
     || { echo "VUS ($VUS) must be between 1 and USERS ($USERS): k6 cannot share fewer runs than" \
               "virtual users" >&2; exit 1; }
+[[ "$WARMUP_VUS" -ge 1 ]] || { echo "WARMUP_VUS ($WARMUP_VUS) must be at least 1" >&2; exit 1; }
 
 # k6 sends no heartbeats: Vaadin removes a UI after three missed heartbeats (~15 minutes), so the
 # UIs of the first runs must still be there at class histogram "after"
@@ -245,8 +248,8 @@ sample_container() { # prints "<epoch seconds> <docker MemUsage>" until killed, 
 
 start_time="$(metric process.start.time)" # to detect restarts, see check_app
 
-echo "Warmup: ${WARMUP_VUS:-$VUS} users at the same time, one run each"
-k6run warmup "${WARMUP_VUS:-$VUS}" "${WARMUP_VUS:-$VUS}" -Dk6.failOnThreshold=false -Dk6.managementPort=-1
+echo "Warmup: $WARMUP_VUS users at the same time, one run each"
+k6run warmup "$WARMUP_VUS" "$WARMUP_VUS" -Dk6.failOnThreshold=false -Dk6.managementPort=-1
 
 echo "Invalidating the warmup sessions, class histogram before (in ${IDLE_WAIT} s)"
 invalidate_sessions

@@ -74,7 +74,7 @@ Prerequisites: Docker, [k6](https://grafana.com/docs/k6/latest/get-started/insta
 
 ```bash
 loadtest/rebuild.sh                 # build the image, (re)start the container, record the k6 script
-loadtest/measure-session-size.sh    # warmup, class histogram, 1,000 users (100 at a time), class histogram
+loadtest/measure-session-size.sh    # warmup, class histogram, 1,000 users (all at a time), class histogram
 ```
 
 After a code change, run both again: `rebuild.sh` builds the new code and records the scenario
@@ -130,14 +130,17 @@ Another host or port: `k6 run -e APP_IP=192.168.1.100 -e APP_PORT=8080 …`, or
 
 ### How the measurement works
 
-`measure-session-size.sh` (options: `SCENARIO`, `USERS`, `VUS`, `MAX_LOAD_MINUTES`,
+`measure-session-size.sh` (options: `SCENARIO`, `USERS`, `VUS`, `WARMUP_VUS`, `MAX_LOAD_MINUTES`,
 `ROUND_SECONDS`, `CHECK_BASELINE`, `IDLE_WAIT`; `LOCAL_PID` and `GC_LOG` measure an app started
 with `java -jar` instead of the container, see the script for the JVM options):
 
-- `USERS` (default 1000): the number of runs of the scenario, i.e. the sessions at the end.
-- `VUS` (default 10 % of `USERS`, at least 10, at most `USERS`): the k6 virtual users, i.e. the
-  users at the same time. They share the runs (k6 executor `shared-iterations`): a virtual user
-  starts the next run when it has finished one.
+- `USERS` (default 100): the number of runs of the scenario, i.e. the sessions at the end.
+- `VUS` (default `USERS`, i.e. all at the same time; at most `USERS`): the k6 virtual users, i.e.
+  the users at the same time. They share the runs (k6 executor `shared-iterations`): a virtual
+  user starts the next run when it has finished one.
+- `WARMUP_VUS` (default `VUS`): the virtual users of the warmup. Set it lower only to demonstrate
+  the warmup pitfall (see below): the extra Tomcat threads of the load are then counted as session
+  memory.
 - `MAX_LOAD_MINUTES` (default 10): the longest the load may take, because the UIs of the first
   runs expire after about 15 minutes (see [Things to know](#things-to-know)). k6 stops the
   remaining runs after this time.
@@ -146,11 +149,11 @@ with `java -jar` instead of the container, see the script for the JVM options):
   `MAX_LOAD_MINUTES`, the script stops before the warmup and names the minimum `VUS` for this
   `USERS`.
 
-1. **Warmup:** `VUS` users run the scenario once each. The first requests load classes and
-   fill caches, and Tomcat creates a worker thread with buffers for every concurrent request. None
-   of this is session memory, so it must be in the heap before the first measurement. Then all
-   sessions are invalidated (`DELETE /actuator/sessions`, which ends the Vaadin sessions and UIs,
-   too; only in builds with the `loadtest` profile).
+1. **Warmup:** `WARMUP_VUS` (default `VUS`) users run the scenario once each. The first requests
+   load classes and fill caches, and Tomcat creates a worker thread with buffers for every
+   concurrent request. None of this is session memory, so it must be in the heap before the first
+   measurement. Then all sessions are invalidated (`DELETE /actuator/sessions`, which ends the
+   Vaadin sessions and UIs, too; only in builds with the `loadtest` profile).
 2. **Class histogram before:** the baseline without sessions. `jcmd <pid> GC.class_histogram`
    runs a full GC and sums the size of all reachable objects per class; the `Total` line is the
    live heap.
@@ -212,9 +215,9 @@ grew with the number of users because the warmup had as many users at the same t
 The warmup must have as many users at the same time as the load: with only 20 warmup users for a
 load of 100 users at the same time, the baseline grew by 7.6 MB during the load, and the memory
 per session came out at 322 KB instead of about 240 KB (a second run on the then warm app gave
-248 KB). The script therefore warms up with `VUS` users. If the baseline growth in `summary.txt`
-is still more than a few KB per session, the load built up other one-time costs; run the
-measurement again on the then warm app.
+248 KB). The script therefore warms up with `VUS` users; `WARMUP_VUS=20 USERS=100` reproduces the
+pitfall. If the baseline growth in `summary.txt` is still more than a few KB per session, the load
+built up other one-time costs; run the measurement again on the then warm app.
 
 The histograms `before.txt`, `after.txt` and `cleared.txt` stay in the result directory. At the
 end of `summary.txt`, the classes that grew most per session show what a session holds. Here,
