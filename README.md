@@ -59,13 +59,13 @@ k6 run -e APP_PORT=8080 /Users/sebastian/Downloads/vaadin-sizing-demo/src/test/k
 
 4a. run a measurement script for cpu capacity
 ```bash
-LOCAL_PID=$(pgrep -f vaadin-sizing-demo-1.0-SNAPSHOT.jar) loadtest/measure-cpu-capacity.sh local
+LOCAL_PID=$(pgrep -f vaadin-sizing-demo-1.0-SNAPSHOT.jar) RUNS=100 WARMUP_RUNS=10 loadtest/measure-cpu-capacity.sh local
 ```
 
 4b. run a measurement script for memory capacity
 ```bash
-LOCAL_PID=$(pgrep -f vaadin-sizing-demo-1.0-SNAPSHOT.jar) loadtest/measure-memory-capacity.sh local
-```
+LOCAL_PID=$(pgrep -f vaadin-sizing-demo-1.0-SNAPSHOT.jar) USERS=100 VUS=100 WARMUP_VUS=100 CHECK_BASELINE=true loadtest/measure-session-size.sh local
+``` 
 
 ## 1. Measure the session size
 

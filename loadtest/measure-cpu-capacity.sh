@@ -4,7 +4,7 @@
 #
 #   1. restarts the container with APP_CPUS cores and a short session timeout, so the sessions of
 #      the finished runs leave the heap and the memory does not limit the test
-#   2. warmup: steps of WARMUP_STEP at WARMUP_RATE runs/min until the CPU per run changed by less
+#   2. warmup: steps of WARMUP_STEP at WARMUP_RUNS runs/min until the CPU per run changed by less
 #      than WARMUP_TOLERANCE (0.10 = 10 %) twice in a row, i.e. three steps in a row have about the
 #      same CPU per run (a single small change can be chance), at most WARMUP_MAX_STEPS steps; the
 #      table in summary.txt marks the step from which it is stable. A fixed duration does not ensure
@@ -13,7 +13,7 @@
 #      otherwise the base load (metrics polling, GC) distorts the comparison, and k6 polls the
 #      metrics (MANAGEMENT_PORT) as in the rate steps. Saturation is not checked during the warmup,
 #      only logged.
-#   3. one step per rate in RATES: k6 starts the scenario at that rate for STEP_DURATION, no matter
+#   3. one step per rate in RUNS: k6 starts the scenario at that rate for STEP_DURATION, no matter
 #      how fast the app answers (constant-arrival-rate, an open model like real users)
 #   4. stops after the first step in which the app is saturated: p95 > P95_LIMIT ms, more than 1 %
 #      failed requests, or k6 could not start all runs (all VUs busy)
@@ -23,7 +23,7 @@
 # completed runs.
 #
 #   loadtest/measure-cpu-capacity.sh                                 # 2 cores
-#   APP_CPUS=1 RATES="30 60 90 120" loadtest/measure-cpu-capacity.sh 1-core
+#   APP_CPUS=1 RUNS="30 60 90 120" loadtest/measure-cpu-capacity.sh 1-core
 #   SCENARIO=hello-world loadtest/measure-cpu-capacity.sh hello      # the other k6 script
 #
 # Without Docker, against an app started locally with java -jar: LOCAL_PID is its process ID. The
@@ -44,9 +44,9 @@ LOCAL_PID="${LOCAL_PID:-}"
 APP_CPUS="${APP_CPUS:-$([[ -n "$LOCAL_PID" ]] && getconf _NPROCESSORS_ONLN || echo 2.0)}"
 APP_MEMORY="${APP_MEMORY:-2g}"
 SESSION_TIMEOUT="${SESSION_TIMEOUT:-2m}"
-RATES="${RATES:-50 100 50}" # scenario runs per minute
+RUNS="${RUNS:-50 100 50}" # scenario runs per minute
 STEP_DURATION="${STEP_DURATION:-1m}"
-WARMUP_RATE="${WARMUP_RATE:-50}" # scenario runs per minute
+WARMUP_RUNS="${WARMUP_RUNS:-50}" # scenario runs per minute
 WARMUP_STEP="${WARMUP_STEP:-1m}" # one run takes ~15 s, shorter steps complete too few runs
 WARMUP_TOLERANCE="${WARMUP_TOLERANCE:-0.10}" # max. relative change of the CPU per run
 WARMUP_MAX_STEPS="${WARMUP_MAX_STEPS:-10}"
@@ -150,7 +150,7 @@ start_time="$(metric process.start.time)" # to detect restarts, see check_app
 
 tolerance="$(awk -v t="$WARMUP_TOLERANCE" 'BEGIN { printf "%g %%", t * 100 }')"
 {
-    echo "warmup: $WARMUP_RATE runs/min, steps of $WARMUP_STEP, tolerance $tolerance"
+    echo "warmup: $WARMUP_RUNS runs/min, steps of $WARMUP_STEP, tolerance $tolerance"
     echo "step  completed  dropped  failed    p95 ms  CPU/run ms    change"
 } | tee "$results/summary.txt"
 
@@ -159,7 +159,7 @@ within=false # the change of the previous step was within the tolerance
 stable=false
 for step in $(seq 1 "$WARMUP_MAX_STEPS"); do
     # The metrics polling as in the rate steps, it costs CPU, too
-    k6step "warmup-$step" "$WARMUP_RATE" "$WARMUP_STEP" -Dk6.managementPort="$MANAGEMENT_PORT"
+    k6step "warmup-$step" "$WARMUP_RUNS" "$WARMUP_STEP" -Dk6.managementPort="$MANAGEMENT_PORT"
     # change: relative to the previous step; exit 2 if it is within the tolerance, 0 (stable) if
     # the change of the previous step was, too
     status=0
@@ -195,7 +195,7 @@ $stable || echo "Warning: the CPU per run is not stable after $WARMUP_MAX_STEPS 
     echo "runs/min  completed  dropped  failed    p95 ms  CPU/run ms  cores used  utilization"
 } | tee -a "$results/summary.txt"
 
-for rate in $RATES; do
+for rate in $RUNS; do
     k6step "rate-$rate" "$rate" "$STEP_DURATION" -Dk6.managementPort="$MANAGEMENT_PORT"
 
     status=0
