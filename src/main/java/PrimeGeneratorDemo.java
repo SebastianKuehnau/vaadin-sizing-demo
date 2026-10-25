@@ -3,24 +3,15 @@ import java.math.BigInteger;
 import java.time.Duration;
 import java.util.HashSet;
 
-public class DemoMeasurements {
+public class PrimeGeneratorDemo {
 
-    public static void main(String[] args) throws InterruptedException {
-        var demo = new DemoMeasurements();
-        demo.runDemo();
-//        for (int i = 0; i < 10; i++) {
-//            System.out.println("---------------------------------------");
-//            System.out.println("Iteration " + (i + 1));
-//            demo.runDemo();
-//            System.out.println("\n");
-//        }
-    }
-
-    private void runDemo() throws InterruptedException {
+    public void runDemo() throws InterruptedException {
+        //keep the start fields
         long heapStart = heapUsedAfterGc();
         var cpuStart = cpuTime();
         long timeStart = System.nanoTime();
 
+        // Computation: uses the CPU
         var primeSet = new HashSet<>();
         primeSet.add(2L);
 
@@ -34,11 +25,13 @@ public class DemoMeasurements {
         // Waiting: uses practically no CPU
         Thread.sleep(2_000);
 
+        //calculate the results
         long elapsedNanos = System.nanoTime() - timeStart;
         Duration cpuUsed = cpuTime().minus(cpuStart);
         // primeSet is still used below, so it is still in the heap for this measurement
         long heapUsed = heapUsedAfterGc() - heapStart;
 
+        //print the results
         System.out.println("Primes found:  " + primeSet.size());
         System.out.printf("Elapsed time:  %.3f seconds%n",
                 elapsedNanos / 1_000_000_000.0);
