@@ -16,7 +16,7 @@ public class PrimeGeneratorDemo {
         primeSet.add(2L);
 
         // Computation: uses the CPU
-        for (long number = 3L; number <= 100_000L; number += 2) {
+        for (long number = 3L; number <= 10_000L; number += 2) {
             if (BigInteger.valueOf(number).isProbablePrime(100)) {
                 primeSet.add(number);
             }

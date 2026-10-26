@@ -11,6 +11,7 @@
     <properties>
         <java.version>25</java.version>
         <vaadin.version>25.3.3</vaadin.version>
+        <testbench-version>25.3.1</testbench-version>
     </properties>
     <parent>
         <groupId>org.springframework.boot</groupId>
@@ -78,8 +79,8 @@
         <dependency>
             <groupId>com.vaadin</groupId>
             <artifactId>testbench-loadtest-support</artifactId>
-            <version>25.3.1</version>
-            <scope>test</scope>
+            <version>${testbench-version}</version>
+            <scope>compile</scope>
         </dependency>
 
         <!-- Metrics for the session size measurement (see README.md) -->
@@ -168,20 +169,14 @@
         <profile>
             <id>loadtest</id>
             <dependencies>
-                <!-- Also in the app (compile scope instead of test): server exceptions become visible to k6 -->
-                <dependency>
-                    <groupId>com.vaadin</groupId>
-                    <artifactId>testbench-loadtest-support</artifactId>
-                    <version>25.3.1</version>
-                    <scope>compile</scope>
-                </dependency>
+
             </dependencies>
             <build>
                 <plugins>
                     <plugin>
                         <groupId>com.vaadin</groupId>
                         <artifactId>testbench-converter-plugin</artifactId>
-                        <version>25.3.1</version>
+                        <version>${testbench-version}</version>
                         <configuration>
                             <testClasses>
                                 <testClass>EditPersonScenario</testClass>

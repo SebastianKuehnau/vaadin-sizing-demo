@@ -5,7 +5,7 @@
 #      loading, caches, Tomcat worker threads) are not counted as session memory; then all sessions
 #      are invalidated (DELETE /actuator/sessions)
 #   2. class histogram "before" (baseline, no sessions)
-#   3. load: VUS virtual users run the scenario USERS times in all (k6 executor shared-iterations,
+#   3. load: VUS virtual users run the scenario ITERATIONS times in all (k6 executor shared-iterations,
 #      a VU starts the next run when it has finished one); every run starts with an empty cookie
 #      jar, so it leaves one session with one UI (one browser tab) behind, which stays in memory
 #      until the session timeout (30 minutes)
@@ -38,18 +38,18 @@
 #
 # The CPU per run is the basis for the number of cores, see loadtest/measure-cpu-capacity.sh.
 #
-# USERS is the number of sessions at the end (default 100), VUS the number of users at the same
-# time (default USERS, i.e. all at the same time; at most USERS). k6 sends no heartbeats: Vaadin
+# ITERATIONS is the number of sessions at the end (default 100), VUS the number of users at the same
+# time (default ITERATIONS, i.e. all at the same time; at most ITERATIONS). k6 sends no heartbeats: Vaadin
 # removes a UI after three missed heartbeats (about 15 minutes), so the load must end well before
-# the UIs of the first runs expire. It runs in rounds of VUS runs; if ceil(USERS / VUS) rounds of
+# the UIs of the first runs expire. It runs in rounds of VUS runs; if ceil(ITERATIONS / VUS) rounds of
 # ROUND_SECONDS (default 20, an estimate; 100 users at the same time took about 19 s) take longer than
 # MAX_LOAD_MINUTES (default 10), the script stops before the warmup and names the minimum VUS. k6
-# stops the remaining runs after MAX_LOAD_MINUTES; then there are fewer sessions than USERS and
+# stops the remaining runs after MAX_LOAD_MINUTES; then there are fewer sessions than ITERATIONS and
 # summary.txt warns. It also warns if the load took longer than MAX_LOAD_MINUTES.
 #
 #   loadtest/measure-session-size.sh                 # 100 users, all at the same time
-#   USERS=200 loadtest/measure-session-size.sh lazy  # the label is added to the result directory
-#   USERS=100 VUS=10 loadtest/measure-session-size.sh quick # 100 sessions, 10 users at the same time
+#   ITERATIONS=200 loadtest/measure-session-size.sh lazy  # the label is added to the result directory
+#   ITERATIONS=100 VUS=10 loadtest/measure-session-size.sh quick # 100 sessions, 10 users at the same time
 #   WARMUP_VUS=20 loadtest/measure-session-size.sh pitfall  # demo only: too few warmup users
 #   CHECK_BASELINE=true loadtest/measure-session-size.sh   # with step 5
 #   SCENARIO=hello-world loadtest/measure-session-size.sh hello   # the other k6 script
@@ -73,8 +73,8 @@
 # per GC) and container.csv (container memory over time).
 set -euo pipefail
 
-USERS="${USERS:-100}"
-VUS="${VUS:-$USERS}"
+ITERATIONS="${ITERATIONS:-100}"
+VUS="${VUS:-$ITERATIONS}"
 WARMUP_VUS="${WARMUP_VUS:-$VUS}" # lower only to demonstrate the warmup pitfall, see README.md
 export MAX_LOAD_MINUTES="${MAX_LOAD_MINUTES:-10}" # also read by the summary
 ROUND_SECONDS="${ROUND_SECONDS:-20}" # one round of VUS runs, 100 users at the same time took ~19 s
@@ -118,21 +118,21 @@ else
                 "Restart the container with the current compose.yaml: docker compose up -d" >&2
 fi
 
-[[ "$VUS" -ge 1 && "$VUS" -le "$USERS" ]] \
-    || { echo "VUS ($VUS) must be between 1 and USERS ($USERS): k6 cannot share fewer runs than" \
+[[ "$VUS" -ge 1 && "$VUS" -le "$ITERATIONS" ]] \
+    || { echo "VUS ($VUS) must be between 1 and ITERATIONS ($ITERATIONS): k6 cannot share fewer runs than" \
               "virtual users" >&2; exit 1; }
 [[ "$WARMUP_VUS" -ge 1 ]] || { echo "WARMUP_VUS ($WARMUP_VUS) must be at least 1" >&2; exit 1; }
 
 # k6 sends no heartbeats: Vaadin removes a UI after three missed heartbeats (~15 minutes), so the
 # UIs of the first runs must still be there at class histogram "after"
-rounds=$(( (USERS + VUS - 1) / VUS ))
+rounds=$(( (ITERATIONS + VUS - 1) / VUS ))
 max_rounds=$(( MAX_LOAD_MINUTES * 60 / ROUND_SECONDS ))
 (( rounds * ROUND_SECONDS <= MAX_LOAD_MINUTES * 60 )) || {
     echo "The load takes about $(( rounds * ROUND_SECONDS )) s ($rounds rounds of $VUS runs, ROUND_SECONDS" \
          "$ROUND_SECONDS s each), more than MAX_LOAD_MINUTES ($MAX_LOAD_MINUTES): the UIs of the first" \
          "runs would expire before the class histogram, k6 sends no heartbeats." >&2
     if (( max_rounds > 0 )); then
-        echo "Use VUS=$(( (USERS + max_rounds - 1) / max_rounds )) or more for USERS=$USERS." >&2
+        echo "Use VUS=$(( (ITERATIONS + max_rounds - 1) / max_rounds )) or more for ITERATIONS=$ITERATIONS." >&2
     else
         echo "Even one round takes longer, raise MAX_LOAD_MINUTES." >&2
     fi
@@ -170,7 +170,7 @@ check_app() { # fails if the app is not reachable or was restarted since the scr
         echo "The app was restarted ($1), the measurement is invalid. Most likely the container" >&2
         echo "exceeded its memory limit and was killed (exit code 137), check with:" >&2
         echo "  docker events --since 30m --until 0s --filter container=sizing-app --filter event=oom" >&2
-        echo "Give it more memory (APP_MEMORY=2g docker compose up -d) or use fewer USERS." >&2
+        echo "Give it more memory (APP_MEMORY=2g docker compose up -d) or use fewer ITERATIONS." >&2
         exit 1
     }
 }
@@ -255,14 +255,14 @@ echo "Invalidating the warmup sessions, class histogram before (in ${IDLE_WAIT} 
 invalidate_sessions
 snapshot before
 
-echo "Load: $USERS runs, $VUS users at the same time (at most $max_duration)"
+echo "Load: $ITERATIONS runs, $VUS users at the same time (at most $max_duration)"
 cpu_before="$(metric process.cpu.time)" # ns; read outside the class histograms, whose full GC costs CPU
 allocated_before="$(metric jvm.gc.memory.allocated)"
 load_start="$(date +%s)"
 uptime_start="$(uptime)"
 sample_container > "$results/container-samples.txt" &
 sampler=$!
-k6run load "$VUS" "$USERS" -Dk6.managementPort="$MANAGEMENT_PORT"
+k6run load "$VUS" "$ITERATIONS" -Dk6.managementPort="$MANAGEMENT_PORT"
 kill "$sampler"
 # k6 passes even if every request failed, as the thresholds only check durations
 [[ "$(metric tomcat.sessions.active.current)" -gt 0 ]] \
@@ -295,7 +295,7 @@ if [[ "$CHECK_BASELINE" == true ]]; then
 fi
 
 echo "scenario: $SCENARIO" > "$results/summary.txt"
-python3 - "$results" "$USERS" "$VUS" "$heap_before" "$sessions_before" "$heap_after" "$sessions_after" \
+python3 - "$results" "$ITERATIONS" "$VUS" "$heap_before" "$sessions_before" "$heap_after" "$sessions_after" \
     "$cpu_before" "$cpu_after" "$allocated_before" "$allocated_after" "$load_start" "$load_end" \
     "$heap_committed" "$nonheap" "$container_limit" "$heap_cleared" "$sessions_cleared" "$uptime_start" "$uptime_end" \
     "$uis_before" "$uis_after" "$uis_cleared" \
@@ -328,7 +328,7 @@ if uis_after - max(uis_before, 0) != sessions_after - sessions_before:
 if new_sessions <= 0:
     print("No new sessions, check the k6 log"); sys.exit(1)
 if new_sessions != users:
-    print(f"Warning: {new_sessions} new sessions instead of {users} (USERS): runs failed, shared a session"
+    print(f"Warning: {new_sessions} new sessions instead of {users} (ITERATIONS): runs failed, shared a session"
           " or were stopped after MAX_LOAD_MINUTES, see load.log")
 max_load_minutes = int(os.environ["MAX_LOAD_MINUTES"])
 if load_end - load_start > max_load_minutes * 60:
