@@ -54,7 +54,7 @@ k6 run -e APP_PORT=8080 /Users/sebastian/Downloads/vaadin-sizing-demo/src/test/k
 
 3b. run the tests with loadtest plugin
 ```bash
-./mvnw loadtest:run -Ploadtest -Dk6.vus=100 -Dk6.duration=1m -Dk6.script=/Users/sebastian/Downloads/vaadin-sizing-demo/src/test/k6/recordings/edit-person.js
+./mvnw loadtest:run -Ploadtest -Dk6.vus=100 -Dk6.testFile=src/test/k6/recordings/edit-person.js
 ```
 
 4a. run a measurement script for cpu capacity
@@ -64,7 +64,7 @@ LOCAL_PID=$(pgrep -f vaadin-sizing-demo-1.0-SNAPSHOT.jar) RUNS=100 WARMUP_RUNS=1
 
 4b. run a measurement script for memory capacity
 ```bash
-LOCAL_PID=$(pgrep -f vaadin-sizing-demo-1.0-SNAPSHOT.jar) USERS=100 VUS=100 WARMUP_VUS=100 CHECK_BASELINE=true loadtest/measure-session-size.sh local
+LOCAL_PID=$(pgrep -f vaadin-sizing-demo-1.0-SNAPSHOT.jar) ITERATIONS=100 VUS=100 WARMUP_VUS=100 CHECK_BASELINE=true loadtest/measure-session-size.sh local
 ``` 
 
 ## 1. Measure the session size
